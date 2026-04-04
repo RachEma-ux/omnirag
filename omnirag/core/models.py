@@ -6,14 +6,14 @@ This ensures interoperability across frameworks.
 
 from __future__ import annotations
 
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 from uuid import uuid4
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 
-class Modality(str, Enum):
+class Modality(StrEnum):
     """Content modality types."""
 
     TEXT = "text"

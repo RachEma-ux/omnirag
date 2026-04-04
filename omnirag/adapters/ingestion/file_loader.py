@@ -7,7 +7,6 @@ No external dependencies required.
 
 from __future__ import annotations
 
-import glob
 from pathlib import Path
 from typing import Any
 

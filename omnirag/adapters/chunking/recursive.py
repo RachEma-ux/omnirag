@@ -106,7 +106,8 @@ class RecursiveChunkerAdapter(BaseAdapter):
                     chunks.append(current.strip())
                 # If this single part exceeds chunk_size, recurse with next separator
                 if len(part) > chunk_size:
-                    sub_sep = separators[separators.index(separator) + 1:]  if separator in separators else [""]
+                    idx = separators.index(separator) + 1 if separator in separators else 0
+                    sub_sep = separators[idx:] if idx < len(separators) else [""]
                     chunks.extend(self._recursive_split(part, chunk_size, overlap, sub_sep))
                     current = ""
                 else:

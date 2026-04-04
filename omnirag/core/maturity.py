@@ -8,11 +8,11 @@ Maturity levels control what optimizations the compiler can apply:
 
 from __future__ import annotations
 
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 
-class MaturityLevel(str, Enum):
+class MaturityLevel(StrEnum):
     CORE = "core"
     EXTENDED = "extended"
     EXPERIMENTAL = "experimental"

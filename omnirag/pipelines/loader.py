@@ -131,5 +131,5 @@ def _detect_cycles(config: PipelineConfig) -> None:
         color[node] = black
 
     for node in adjacency:
-        if color[node] == WHITE:
+        if color[node] == white:
             dfs(node)
