@@ -19,16 +19,12 @@ const initialFor = (name) => name.charAt(0).toUpperCase();
 async function checkHealth() {
   try {
     healthData = await fetch(`${API}/health`).then(r => r.json());
-    document.getElementById('status-dot').className = 'status-dot online';
-    document.getElementById('status-text').textContent = `v${healthData.version} — Healthy`;
     // Footer status
     const fDot = document.getElementById('footer-status-dot');
     const fText = document.getElementById('footer-status-text');
     if (fDot) fDot.className = 'status-dot online';
     if (fText) fText.textContent = `v${healthData.version} · Healthy`;
   } catch {
-    document.getElementById('status-dot').className = 'status-dot offline';
-    document.getElementById('status-text').textContent = 'Offline';
     const fDot = document.getElementById('footer-status-dot');
     const fText = document.getElementById('footer-status-text');
     if (fDot) fDot.className = 'status-dot offline';
