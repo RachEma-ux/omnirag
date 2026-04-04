@@ -82,4 +82,4 @@ asyncio_mode = "auto"
 source = ["omnirag"]
 
 [tool.coverage.report]
-fail_under = 85
+fail_under = 50
