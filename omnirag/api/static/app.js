@@ -215,6 +215,7 @@ function navigate(page) {
   if (page === 'home') return renderHome();
   if (page === 'metrics') return renderMetrics(body);
   if (page === 'settings') return renderSettings(body);
+  if (page === 'howto') return renderHowTo(body);
   if (page === 'api-docs') return renderEmbedded(body, '/docs', 'API Docs (Swagger)');
   if (page === 'redoc') return renderEmbedded(body, '/redoc', 'ReDoc');
 }
@@ -422,6 +423,324 @@ function renderMetrics(body) {
         <div class="card"><div class="card-title">Strategies</div><div class="card-body">
           <span class="badge badge-info">single</span> <span class="badge badge-info">fallback</span> <span class="badge badge-info">ensemble</span> <span class="badge badge-info">vote</span>
         </div></div>
+      </div>
+    </div>
+  `;
+}
+
+function renderHowTo(body) {
+  body.innerHTML = `
+    <div style="max-width:740px; margin:0 auto;">
+      <div style="margin-bottom:32px;">
+        <h1 style="font-size:22px; font-weight:700; color:var(--text); margin-bottom:4px;">How To Use OmniRAG</h1>
+        <p style="font-size:14px; color:var(--text-dim);">Step-by-step guide to the control plane for RAG systems.</p>
+      </div>
+
+      <!-- Step 1 -->
+      <div class="card" style="margin-bottom:16px;">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+          <div style="width:28px; height:28px; border-radius:50%; background:var(--accent); color:#fff; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; flex-shrink:0;">1</div>
+          <div class="card-title" style="margin:0;">Define a Pipeline in YAML</div>
+        </div>
+        <p style="color:var(--text-dim); margin-bottom:12px;">A pipeline is a directed graph of stages — ingestion, chunking, embedding, retrieval, reranking, and generation. Each stage maps to an adapter.</p>
+        <pre>version: "4.0"
+name: local_ollama_rag
+description: "Local RAG — Ollama + in-memory store"
+
+execution:
+  strategy: single
+
+stages:
+  - id: load
+    adapter: file_loader
+    params:
+      path: ./data
+      glob: "*.txt"
+
+  - id: chunk
+    adapter: recursive_splitter
+    params:
+      chunk_size: 256
+      overlap: 30
+    input: load
+
+  - id: store
+    adapter: memory
+    params:
+      mode: upsert
+    input: chunk
+
+  - id: retrieve
+    adapter: memory
+    params:
+      top_k: 3
+    input: query
+
+  - id: generate
+    adapter: ollama_gen
+    params:
+      model: tinyllama
+      base_url: http://localhost:11434
+      temperature: 0.5
+    input: retrieve
+
+output: GenerationResult</pre>
+      </div>
+
+      <!-- Step 2 -->
+      <div class="card" style="margin-bottom:16px;">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+          <div style="width:28px; height:28px; border-radius:50%; background:var(--accent); color:#fff; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; flex-shrink:0;">2</div>
+          <div class="card-title" style="margin:0;">Upload the Pipeline</div>
+        </div>
+        <p style="color:var(--text-dim); margin-bottom:12px;">Click the <strong style="color:var(--text)">+</strong> button in the sidebar or use the API:</p>
+        <div style="display:flex; gap:8px; margin-bottom:12px;">
+          <button class="btn btn-primary" onclick="showUpload()">Upload Pipeline</button>
+        </div>
+        <p style="color:var(--text-muted); font-size:12px; margin-bottom:8px;">Or via cURL:</p>
+        <pre>curl -X POST http://localhost:8100/pipelines/ \\
+  -H "Content-Type: application/json" \\
+  -d '{"yaml_content": "&lt;your YAML here&gt;"}'</pre>
+        <p style="color:var(--text-dim); margin-top:10px;">Response:</p>
+        <pre>{
+  "name": "local_ollama_rag",
+  "description": "Local RAG — Ollama + in-memory store",
+  "version": "4.0",
+  "stage_count": 5,
+  "strategy": "single"
+}</pre>
+      </div>
+
+      <!-- Step 3 -->
+      <div class="card" style="margin-bottom:16px;">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+          <div style="width:28px; height:28px; border-radius:50%; background:var(--accent); color:#fff; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; flex-shrink:0;">3</div>
+          <div class="card-title" style="margin:0;">Invoke the Pipeline</div>
+        </div>
+        <p style="color:var(--text-dim); margin-bottom:12px;">Click a pipeline in the sidebar, then press <strong style="color:var(--text)">Invoke</strong>. Or use the API:</p>
+        <pre>curl -X POST http://localhost:8100/pipelines/local_ollama_rag/invoke \\
+  -H "Content-Type: application/json" \\
+  -d '{"query": "What is RAG?", "params": {}}'</pre>
+        <p style="color:var(--text-dim); margin-top:10px;">Response:</p>
+        <pre>{
+  "answer": "RAG (Retrieval-Augmented Generation) combines ...",
+  "citations": ["data/rag-overview.txt"],
+  "confidence": 0.87,
+  "metadata": {}
+}</pre>
+      </div>
+
+      <!-- Step 4 -->
+      <div class="card" style="margin-bottom:16px;">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+          <div style="width:28px; height:28px; border-radius:50%; background:var(--accent); color:#fff; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; flex-shrink:0;">4</div>
+          <div class="card-title" style="margin:0;">View the Execution Plan</div>
+        </div>
+        <p style="color:var(--text-dim); margin-bottom:12px;">The compiler analyzes your pipeline DAG, detects deterministic sub-graphs, and fuses them for faster execution.</p>
+        <pre>GET /pipelines/local_ollama_rag/plan
+
+{
+  "pipeline": "local_ollama_rag",
+  "analysis": {
+    "total_stages": 5,
+    "deterministic": ["load", "chunk", "store"],
+    "interpreted": ["retrieve", "generate"],
+    "fused_subgraphs": 1
+  },
+  "execution_plan": [
+    { "type": "compiled", "stages": ["load","chunk","store"] },
+    { "type": "interpreted", "stages": ["retrieve","generate"] }
+  ]
+}</pre>
+      </div>
+
+      <!-- Step 5 -->
+      <div class="card" style="margin-bottom:16px;">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+          <div style="width:28px; height:28px; border-radius:50%; background:var(--accent); color:#fff; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; flex-shrink:0;">5</div>
+          <div class="card-title" style="margin:0;">Use Execution Strategies</div>
+        </div>
+        <p style="color:var(--text-dim); margin-bottom:12px;">Choose how pipelines run by setting <code>execution.strategy</code> in your YAML:</p>
+        <table style="margin-bottom:12px;">
+          <thead><tr><th>Strategy</th><th>Behavior</th><th>Use Case</th></tr></thead>
+          <tbody>
+            <tr><td><code>single</code></td><td>Run one pipeline</td><td>Default, lowest latency</td></tr>
+            <tr><td><code>fallback</code></td><td>Try A → if low confidence → try B, C...</td><td>High availability</td></tr>
+            <tr><td><code>ensemble</code></td><td>Run all in parallel, merge results</td><td>Maximum quality</td></tr>
+            <tr><td><code>vote</code></td><td>Majority vote weighted by confidence</td><td>Disagreement resolution</td></tr>
+          </tbody>
+        </table>
+        <p style="color:var(--text-muted); font-size:12px;">Example — fallback strategy:</p>
+        <pre>execution:
+  strategy: fallback
+  fallback_threshold: 0.6</pre>
+      </div>
+
+      <!-- Step 6 -->
+      <div class="card" style="margin-bottom:16px;">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+          <div style="width:28px; height:28px; border-radius:50%; background:var(--accent); color:#fff; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; flex-shrink:0;">6</div>
+          <div class="card-title" style="margin:0;">Built-in Adapters</div>
+        </div>
+        <p style="color:var(--text-dim); margin-bottom:12px;">8 adapters ship out of the box. Use them as <code>adapter:</code> values in your pipeline stages.</p>
+        <table>
+          <thead><tr><th>Adapter</th><th>Category</th><th>Dependencies</th></tr></thead>
+          <tbody>
+            <tr><td><code>file_loader</code></td><td>Ingestion</td><td>None</td></tr>
+            <tr><td><code>recursive_splitter</code></td><td>Chunking</td><td>None</td></tr>
+            <tr><td><code>memory</code></td><td>Retrieval</td><td>None</td></tr>
+            <tr><td><code>huggingface</code></td><td>Embedding</td><td><code>pip install omnirag[huggingface]</code></td></tr>
+            <tr><td><code>qdrant</code></td><td>Vector DB</td><td><code>pip install omnirag[qdrant]</code></td></tr>
+            <tr><td><code>cross_encoder</code></td><td>Reranking</td><td><code>pip install omnirag[huggingface]</code></td></tr>
+            <tr><td><code>openai_gen</code></td><td>Generation</td><td><code>openai</code></td></tr>
+            <tr><td><code>ollama_gen</code></td><td>Generation</td><td>None (REST API)</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Step 7 -->
+      <div class="card" style="margin-bottom:16px;">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+          <div style="width:28px; height:28px; border-radius:50%; background:var(--accent); color:#fff; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; flex-shrink:0;">7</div>
+          <div class="card-title" style="margin:0;">Async Invocation & WebSocket Streaming</div>
+        </div>
+        <p style="color:var(--text-dim); margin-bottom:12px;">For long-running pipelines, use async invoke and poll for results:</p>
+        <pre># Submit async
+curl -X POST http://localhost:8100/pipelines/my_pipeline/invoke_async \\
+  -H "Content-Type: application/json" \\
+  -d '{"query": "Summarize all documents", "params": {}}'
+
+# Response: {"task_id": "abc123"}
+
+# Poll
+curl http://localhost:8100/tasks/abc123</pre>
+        <p style="color:var(--text-dim); margin-top:12px;">For real-time streaming, connect via WebSocket:</p>
+        <pre>ws://localhost:8100/ws/chat
+
+# Send: {"pipeline": "my_pipeline", "query": "..."}
+# Receive: streaming chunks as they generate</pre>
+      </div>
+
+      <!-- Step 8 -->
+      <div class="card" style="margin-bottom:16px;">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+          <div style="width:28px; height:28px; border-radius:50%; background:var(--accent); color:#fff; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; flex-shrink:0;">8</div>
+          <div class="card-title" style="margin:0;">CLI Commands</div>
+        </div>
+        <p style="color:var(--text-dim); margin-bottom:12px;">OmniRAG also works from the command line:</p>
+        <pre># Validate a pipeline YAML
+omnirag validate examples/simple_rag.yaml
+
+# Run a pipeline directly
+omnirag run examples/local_ollama_pipeline.yaml \\
+  --query "What is RAG?"
+
+# Start the API server
+omnirag serve --host 0.0.0.0 --port 8100</pre>
+      </div>
+
+      <!-- Quick Reference -->
+      <div class="card" style="margin-bottom:16px;">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+          <div class="card-title" style="margin:0;">API Quick Reference</div>
+        </div>
+        <table>
+          <thead><tr><th>Method</th><th>Endpoint</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><span class="badge badge-success">GET</span></td><td><code>/health</code></td><td>Health check</td></tr>
+            <tr><td><span class="badge badge-info">GET</span></td><td><code>/metrics</code></td><td>Prometheus metrics</td></tr>
+            <tr><td><span class="badge badge-info">POST</span></td><td><code>/pipelines/</code></td><td>Upload pipeline YAML</td></tr>
+            <tr><td><span class="badge badge-success">GET</span></td><td><code>/pipelines/</code></td><td>List all pipelines</td></tr>
+            <tr><td><span class="badge badge-success">GET</span></td><td><code>/pipelines/{name}</code></td><td>Get pipeline info</td></tr>
+            <tr><td><span class="badge badge-success">GET</span></td><td><code>/pipelines/{name}/plan</code></td><td>Execution plan</td></tr>
+            <tr><td><span class="badge badge-info">POST</span></td><td><code>/pipelines/{name}/invoke</code></td><td>Invoke (sync)</td></tr>
+            <tr><td><span class="badge badge-info">POST</span></td><td><code>/pipelines/{name}/invoke_async</code></td><td>Invoke (async)</td></tr>
+            <tr><td><span class="badge badge-success">GET</span></td><td><code>/tasks/{id}</code></td><td>Poll async result</td></tr>
+            <tr><td><span class="badge badge-warning">WS</span></td><td><code>/ws/chat</code></td><td>Real-time streaming</td></tr>
+          </tbody>
+        </table>
+        <div style="margin-top:12px; display:flex; gap:8px;">
+          <button class="btn" onclick="navigate('api-docs')">Open API Docs</button>
+          <button class="btn" onclick="navigate('redoc')">Open ReDoc</button>
+        </div>
+      </div>
+
+      <!-- Example Pipelines -->
+      <div class="card" style="margin-bottom:32px;">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M4 4h6v6H4zM14 4h6v6h-6zM9 10l5 4M4 14h6v6H4z"/></svg>
+          <div class="card-title" style="margin:0;">Example Pipelines</div>
+        </div>
+        <p style="color:var(--text-dim); margin-bottom:12px;">Paste any of these into the Upload form to try them:</p>
+
+        <div style="margin-bottom:16px;">
+          <p style="font-size:13px; font-weight:500; color:var(--text); margin-bottom:6px;">Minimal — In-Memory Retrieval</p>
+          <pre>version: "4.0"
+name: minimal_rag
+execution:
+  strategy: single
+stages:
+  - id: retrieve
+    adapter: memory
+    params: { top_k: 3 }
+    input: query
+  - id: generate
+    adapter: ollama_gen
+    params: { model: tinyllama }
+    input: retrieve</pre>
+        </div>
+
+        <div style="margin-bottom:16px;">
+          <p style="font-size:13px; font-weight:500; color:var(--text); margin-bottom:6px;">Fallback — Try OpenAI, fall back to Ollama</p>
+          <pre>version: "4.0"
+name: fallback_rag
+execution:
+  strategy: fallback
+  fallback_threshold: 0.5
+stages:
+  - id: retrieve
+    adapter: qdrant
+    params: { top_k: 5 }
+    input: query
+  - id: generate_primary
+    adapter: openai_gen
+    params: { model: gpt-4 }
+    input: retrieve
+  - id: generate_fallback
+    adapter: ollama_gen
+    params: { model: llama3 }
+    input: retrieve</pre>
+        </div>
+
+        <div>
+          <p style="font-size:13px; font-weight:500; color:var(--text); margin-bottom:6px;">Ensemble — Parallel execution + merge</p>
+          <pre>version: "4.0"
+name: ensemble_rag
+execution:
+  strategy: ensemble
+  ensemble_merge: rerank
+stages:
+  - id: embed
+    adapter: huggingface
+    params: { model: BAAI/bge-large-en }
+    input: query
+  - id: retrieve_qdrant
+    adapter: qdrant
+    params: { top_k: 5 }
+    input: embed
+  - id: retrieve_memory
+    adapter: memory
+    params: { top_k: 5 }
+    input: embed
+  - id: rerank
+    adapter: cross_encoder
+    input: [retrieve_qdrant, retrieve_memory]
+  - id: generate
+    adapter: openai_gen
+    params: { model: gpt-4 }
+    input: rerank</pre>
+        </div>
       </div>
     </div>
   `;
