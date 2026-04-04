@@ -17,7 +17,7 @@ def _registry_with_defaults() -> AdapterRegistry:
 
 
 def _pipeline_with_mixed_stages() -> PipelineConfig:
-    """Pipeline with deterministic (chunking, retrieval) and non-deterministic (generation) stages."""
+    """Pipeline with deterministic and non-deterministic stages."""
     return PipelineConfig(
         name="mixed_test",
         stages=[
