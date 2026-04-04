@@ -98,6 +98,7 @@ body {
   transition: background 120ms, color 120ms;
 }
 .rail-icon:hover { background: var(--bg-raised); color: var(--text); }
+.rail-icon svg { width: 20px; height: 20px; }
 
 .rail-status {
   display: flex; flex-direction: column; align-items: center; gap: 4px;
