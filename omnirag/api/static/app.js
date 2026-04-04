@@ -21,18 +21,18 @@ async function checkHealth() {
     healthData = await fetch(`${API}/health`).then(r => r.json());
     document.getElementById('status-dot').className = 'status-dot online';
     document.getElementById('status-text').textContent = `v${healthData.version} — Healthy`;
-    // Rail bottom status
-    const railDot = document.getElementById('rail-status-dot');
-    const railVer = document.getElementById('rail-version');
-    if (railDot) railDot.className = 'status-dot online';
-    if (railVer) railVer.textContent = `v${healthData.version}\nHealthy`;
+    // Footer status
+    const fDot = document.getElementById('footer-status-dot');
+    const fText = document.getElementById('footer-status-text');
+    if (fDot) fDot.className = 'status-dot online';
+    if (fText) fText.textContent = `v${healthData.version} · Healthy`;
   } catch {
     document.getElementById('status-dot').className = 'status-dot offline';
     document.getElementById('status-text').textContent = 'Offline';
-    const railDot = document.getElementById('rail-status-dot');
-    const railVer = document.getElementById('rail-version');
-    if (railDot) railDot.className = 'status-dot offline';
-    if (railVer) railVer.textContent = 'Offline';
+    const fDot = document.getElementById('footer-status-dot');
+    const fText = document.getElementById('footer-status-text');
+    if (fDot) fDot.className = 'status-dot offline';
+    if (fText) fText.textContent = 'Offline';
   }
 }
 
