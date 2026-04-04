@@ -57,7 +57,7 @@ def run(pipeline_path: str, query: str) -> None:
 
 
 @cli.command()
-@click.option("--host", default="0.0.0.0", help="Bind host")
+@click.option("--host", default="127.0.0.1", help="Bind host")
 @click.option("--port", default=8100, type=int, help="Bind port")
 @click.option("--reload", is_flag=True, help="Enable auto-reload for development")
 def serve(host: str, port: int, reload: bool) -> None:
