@@ -58,6 +58,7 @@ body {
   font-size: 11px; color: var(--text-dim); text-decoration: none;
   padding: 3px 8px; border: 1px solid var(--border); border-radius: 6px;
   transition: border-color 150ms, color 150ms;
+  background: none; cursor: pointer; font-family: var(--font);
 }
 .titlebar-link:hover { border-color: var(--text-dim); color: var(--text); }
 
@@ -97,6 +98,16 @@ body {
   transition: background 120ms, color 120ms;
 }
 .rail-icon:hover { background: var(--bg-raised); color: var(--text); }
+
+.rail-status {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 8px 4px 12px; text-align: center;
+}
+.rail-status .status-dot { width: 6px; height: 6px; }
+.rail-status span {
+  font-size: 9px; color: var(--text-muted); line-height: 1.2;
+  writing-mode: horizontal-tb; word-break: break-all; max-width: 56px;
+}
 
 /* Pipeline avatar in rail */
 .pipeline-avatar {

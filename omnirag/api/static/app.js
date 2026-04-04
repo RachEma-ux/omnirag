@@ -21,9 +21,18 @@ async function checkHealth() {
     healthData = await fetch(`${API}/health`).then(r => r.json());
     document.getElementById('status-dot').className = 'status-dot online';
     document.getElementById('status-text').textContent = `v${healthData.version} — Healthy`;
+    // Rail bottom status
+    const railDot = document.getElementById('rail-status-dot');
+    const railVer = document.getElementById('rail-version');
+    if (railDot) railDot.className = 'status-dot online';
+    if (railVer) railVer.textContent = `v${healthData.version}\nHealthy`;
   } catch {
     document.getElementById('status-dot').className = 'status-dot offline';
     document.getElementById('status-text').textContent = 'Offline';
+    const railDot = document.getElementById('rail-status-dot');
+    const railVer = document.getElementById('rail-version');
+    if (railDot) railDot.className = 'status-dot offline';
+    if (railVer) railVer.textContent = 'Offline';
   }
 }
 
@@ -206,6 +215,23 @@ function navigate(page) {
   if (page === 'home') return renderHome();
   if (page === 'metrics') return renderMetrics(body);
   if (page === 'settings') return renderSettings(body);
+  if (page === 'api-docs') return renderEmbedded(body, '/docs', 'API Docs (Swagger)');
+  if (page === 'redoc') return renderEmbedded(body, '/redoc', 'ReDoc');
+}
+
+function renderEmbedded(body, src, title) {
+  body.innerHTML = `
+    <div style="display:flex; flex-direction:column; height:100%; margin:-24px -20px; overflow:hidden;">
+      <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 16px; border-bottom:1px solid var(--border); flex-shrink:0;">
+        <span style="font-size:14px; font-weight:500; color:var(--text);">${title}</span>
+        <div style="display:flex; gap:8px;">
+          <button class="btn" onclick="window.open('${src}','_blank')" style="font-size:11px; padding:3px 10px;">Open in new tab</button>
+          <button class="btn" onclick="navigate('home')" style="font-size:11px; padding:3px 10px;">Close</button>
+        </div>
+      </div>
+      <iframe src="${src}" style="flex:1; border:none; width:100%; min-height:0; background:#fff;"></iframe>
+    </div>
+  `;
 }
 
 // ─── Drawer ───
