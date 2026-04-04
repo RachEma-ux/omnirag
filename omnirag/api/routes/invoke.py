@@ -39,7 +39,7 @@ async def invoke_pipeline(name: str, body: InvokeRequest) -> InvokeResponse:
     try:
         result: GenerationResult = executor.execute(config, body.query)
     except ExecutionError as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
     return InvokeResponse(
         answer=result.answer,

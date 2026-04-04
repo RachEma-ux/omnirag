@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import concurrent.futures
-import structlog
 from typing import Any
 
-from omnirag.core.models import GenerationResult, OmniChunk
+import structlog
+
+from omnirag.core.models import GenerationResult
 from omnirag.pipelines.schema import PipelineConfig
 from omnirag.strategies.base import ExecutionStrategy
 

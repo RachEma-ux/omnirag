@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import concurrent.futures
-import structlog
-from collections import Counter
 from typing import Any
+
+import structlog
 
 from omnirag.core.models import GenerationResult
 from omnirag.pipelines.schema import PipelineConfig

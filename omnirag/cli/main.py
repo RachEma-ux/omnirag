@@ -32,7 +32,7 @@ def validate(pipeline_path: str) -> None:
             click.echo(f"  - {stage.id}{adapter_info}{runtime_info}")
     except Exception as e:
         click.echo(f"Validation failed: {e}", err=True)
-        raise SystemExit(1)
+        raise SystemExit(1) from e
 
 
 @cli.command()
@@ -53,7 +53,7 @@ def run(pipeline_path: str, query: str) -> None:
             click.echo(f"Citations: {', '.join(result.citations)}")
     except Exception as e:
         click.echo(f"Execution failed: {e}", err=True)
-        raise SystemExit(1)
+        raise SystemExit(1) from e
 
 
 @cli.command()

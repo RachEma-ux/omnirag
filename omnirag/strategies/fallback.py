@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-import structlog
 from typing import Any
+
+import structlog
 
 from omnirag.core.exceptions import ExecutionError, StrategyExhaustedError
 from omnirag.core.models import GenerationResult

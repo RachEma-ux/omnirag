@@ -35,7 +35,7 @@ async def upload_pipeline(body: PipelineUpload) -> PipelineResponse:
     try:
         config = load_pipeline(body.yaml_content)
     except PipelineValidationError as e:
-        raise HTTPException(status_code=422, detail=str(e))
+        raise HTTPException(status_code=422, detail=str(e)) from e
 
     _pipelines[config.name] = config
 

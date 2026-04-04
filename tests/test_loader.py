@@ -2,9 +2,9 @@
 
 import pytest
 
-from omnirag.core.exceptions import PipelineCycleError, PipelineValidationError
+from omnirag.core.exceptions import PipelineValidationError
 from omnirag.pipelines.loader import load_pipeline, validate_pipeline
-from omnirag.pipelines.schema import PipelineConfig, StageConfig, ExecutionConfig
+from omnirag.pipelines.schema import PipelineConfig, StageConfig
 
 
 VALID_YAML = """

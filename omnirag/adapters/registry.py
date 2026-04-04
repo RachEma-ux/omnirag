@@ -48,7 +48,7 @@ class AdapterRegistry:
     def list_adapters(self) -> list[dict[str, str]]:
         """List all registered adapters with their maturity levels."""
         return [
-            {"name": name, "maturity": info["maturity"].value, "category": info["class"].category}
+            {"name": name, "maturity": info["maturity"].value}
             for name, info in self._adapters.items()
         ]
 
