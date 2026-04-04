@@ -1,0 +1,62 @@
+version: "4.0"
+name: simple_rag
+description: "Simple RAG pipeline: load → chunk → embed → retrieve → generate"
+
+execution:
+  strategy: single
+
+stages:
+  - id: load_documents
+    runtime: shared
+    adapter: unstructured
+    params:
+      path: ./data
+      glob: "*.pdf"
+    output: OmniDocument
+
+  - id: chunk
+    runtime: shared
+    adapter: recursive_splitter
+    params:
+      chunk_size: 512
+      overlap: 50
+    input: load_documents
+
+  - id: embed
+    runtime: shared
+    adapter: huggingface
+    params:
+      model: BAAI/bge-large-en
+    input: chunk
+
+  - id: store
+    runtime: shared
+    adapter: qdrant
+    params:
+      collection: my_docs
+      mode: upsert
+    input: embed
+
+  - id: retrieve
+    runtime: shared
+    adapter: qdrant
+    params:
+      top_k: 5
+    input: query
+
+  - id: rerank
+    runtime: shared
+    adapter: ragatouille
+    params:
+      model: colbert-v2
+    input: retrieve
+
+  - id: generate
+    runtime: shared
+    adapter: llmware
+    params:
+      model: Mistral-7B
+      prompt_template: "Answer: {query}\nContext: {chunks}"
+    input: rerank
+
+output: GenerationResult
