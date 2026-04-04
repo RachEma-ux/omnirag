@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
 
 import yaml
 from pydantic import ValidationError
@@ -25,10 +24,7 @@ def load_pipeline(source: str | Path) -> PipelineConfig:
         PipelineValidationError: If the YAML is invalid.
     """
     path = Path(source)
-    if path.exists() and path.is_file():
-        raw = path.read_text(encoding="utf-8")
-    else:
-        raw = str(source)
+    raw = path.read_text(encoding="utf-8") if path.exists() and path.is_file() else str(source)
 
     try:
         data = yaml.safe_load(raw)
@@ -120,19 +116,19 @@ def _detect_cycles(config: PipelineConfig) -> None:
             adjacency.setdefault(dep, [])
             adjacency[dep].append(stage.id)
 
-    WHITE, GRAY, BLACK = 0, 1, 2
-    color: dict[str, int] = {node: WHITE for node in adjacency}
+    white, gray, black = 0, 1, 2
+    color: dict[str, int] = {node: white for node in adjacency}
 
     def dfs(node: str) -> None:
-        color[node] = GRAY
+        color[node] = gray
         for neighbor in adjacency.get(node, []):
-            if color.get(neighbor) == GRAY:
+            if color.get(neighbor) == gray:
                 raise PipelineCycleError(
                     f"Cycle detected involving stages: {node} -> {neighbor}"
                 )
-            if color.get(neighbor) == WHITE:
+            if color.get(neighbor) == white:
                 dfs(neighbor)
-        color[node] = BLACK
+        color[node] = black
 
     for node in adjacency:
         if color[node] == WHITE:

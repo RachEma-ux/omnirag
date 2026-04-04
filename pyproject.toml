@@ -69,6 +69,10 @@ line-length = 100
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "W", "UP", "B", "SIM"]
 
+[tool.ruff.lint.isort]
+known-first-party = ["omnirag"]
+known-third-party = ["pytest", "structlog", "pydantic", "yaml", "click", "fastapi", "uvicorn", "httpx"]
+
 [tool.mypy]
 python_version = "3.11"
 strict = true
