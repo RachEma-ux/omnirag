@@ -1,0 +1,56 @@
+version: "4.0"
+name: ensemble_rag
+description: "Ensemble strategy: run multiple retrievers in parallel, merge and rerank"
+
+execution:
+  strategy: ensemble
+  ensemble_merge: rerank
+  parallelism: 2
+
+stages:
+  - id: load
+    adapter: file_loader
+    params:
+      path: ./data
+
+  - id: chunk
+    adapter: recursive_splitter
+    params:
+      chunk_size: 512
+      overlap: 50
+    input: load
+
+  - id: embed
+    adapter: huggingface
+    params:
+      model: BAAI/bge-large-en
+    input: chunk
+
+  - id: store
+    adapter: qdrant
+    params:
+      collection: ensemble_docs
+      mode: upsert
+    input: embed
+
+  - id: retrieve
+    adapter: qdrant
+    params:
+      top_k: 10
+    input: query
+
+  - id: rerank
+    adapter: cross_encoder
+    params:
+      model: cross-encoder/ms-marco-MiniLM-L-6-v2
+      top_k: 5
+    input: retrieve
+
+  - id: generate
+    adapter: openai_gen
+    params:
+      model: gpt-4o-mini
+      temperature: 0.2
+    input: rerank
+
+output: GenerationResult

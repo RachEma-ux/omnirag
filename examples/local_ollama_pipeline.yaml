@@ -1,0 +1,42 @@
+version: "4.0"
+name: local_ollama_rag
+description: "Fully local RAG pipeline — no cloud APIs, uses Ollama + in-memory vector store"
+
+execution:
+  strategy: single
+
+stages:
+  - id: load
+    adapter: file_loader
+    params:
+      path: ./data
+      glob: "*.txt"
+
+  - id: chunk
+    adapter: recursive_splitter
+    params:
+      chunk_size: 256
+      overlap: 30
+    input: load
+
+  - id: store
+    adapter: memory
+    params:
+      mode: upsert
+    input: chunk
+
+  - id: retrieve
+    adapter: memory
+    params:
+      top_k: 3
+    input: query
+
+  - id: generate
+    adapter: ollama_gen
+    params:
+      model: tinyllama
+      base_url: http://localhost:11434
+      temperature: 0.5
+    input: retrieve
+
+output: GenerationResult

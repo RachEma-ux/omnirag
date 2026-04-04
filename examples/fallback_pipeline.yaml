@@ -1,0 +1,49 @@
+version: "4.0"
+name: fallback_rag
+description: "Fallback strategy: try Qdrant first, fall back to in-memory if low confidence"
+
+execution:
+  strategy: fallback
+  fallback_condition: "confidence < 0.7"
+
+stages:
+  - id: load_documents
+    adapter: file_loader
+    params:
+      path: ./data
+      glob: "*.md"
+
+  - id: chunk
+    adapter: recursive_splitter
+    params:
+      chunk_size: 400
+      overlap: 40
+    input: load_documents
+
+  - id: embed
+    adapter: huggingface
+    params:
+      model: all-MiniLM-L6-v2
+    input: chunk
+
+  - id: store_qdrant
+    adapter: qdrant
+    params:
+      collection: docs_primary
+      mode: upsert
+    input: embed
+
+  - id: retrieve
+    adapter: qdrant
+    params:
+      collection: docs_primary
+      top_k: 5
+    input: query
+
+  - id: generate
+    adapter: ollama_gen
+    params:
+      model: phi3
+    input: retrieve
+
+output: GenerationResult
