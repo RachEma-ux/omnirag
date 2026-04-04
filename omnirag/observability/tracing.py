@@ -7,7 +7,8 @@ Falls back gracefully if OpenTelemetry SDK is not installed.
 from __future__ import annotations
 
 from contextlib import contextmanager
-from typing import Any, Generator
+from collections.abc import Generator
+from typing import Any
 
 
 class TracingManager:

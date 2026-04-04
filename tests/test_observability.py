@@ -49,5 +49,5 @@ def test_prometheus_export():
 def test_tracing_manager_noop():
     """TracingManager should work even without OTel SDK."""
     tm = TracingManager()
-    with tm.span("test_span", {"key": "value"}) as s:
+    with tm.span("test_span", {"key": "value"}):
         pass  # Should not raise

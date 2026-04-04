@@ -10,7 +10,7 @@ from typing import Any
 
 from omnirag.adapters.base import BaseAdapter
 from omnirag.core.maturity import maturity_level
-from omnirag.core.models import OmniChunk, RetrievalResult
+from omnirag.core.models import RetrievalResult
 
 
 @maturity_level("core")

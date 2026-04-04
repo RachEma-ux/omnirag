@@ -6,7 +6,6 @@ Redis/PostgreSQL-backed storage.
 
 from __future__ import annotations
 
-import asyncio
 import time
 import uuid
 from enum import StrEnum
