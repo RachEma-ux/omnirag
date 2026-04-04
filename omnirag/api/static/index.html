@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>OmniRAG v4</title>
+<link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+
+<div class="shell" id="app">
+  <!-- Titlebar -->
+  <header class="titlebar">
+    <div class="titlebar-left">
+      <button class="hamburger" id="hamburger-btn" onclick="toggleDrawer()" aria-label="Toggle menu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+      </button>
+      <div class="titlebar-brand"><span>Omni</span>RAG</div>
+    </div>
+    <div class="titlebar-center">
+      <div class="titlebar-status">
+        <div class="status-dot" id="status-dot"></div>
+        <span id="status-text">Connecting...</span>
+      </div>
+    </div>
+    <div class="titlebar-right">
+      <a href="/docs" target="_blank" class="titlebar-link">API Docs</a>
+      <a href="/redoc" target="_blank" class="titlebar-link">ReDoc</a>
+    </div>
+  </header>
+
+  <!-- Body: Rail + Panel + Main -->
+  <div class="shell-body">
+
+    <!-- Sidebar Rail (tablet + desktop) -->
+    <nav class="sidebar-rail" id="sidebar-rail">
+      <!-- Pipeline avatars populated by JS -->
+      <div class="rail-items" id="rail-items"></div>
+      <button class="rail-icon" title="Upload Pipeline" onclick="showUpload()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>
+      <div class="rail-spacer"></div>
+      <button class="rail-icon" title="Metrics" onclick="navigate('metrics')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+      </button>
+      <button class="rail-icon" title="Settings" onclick="navigate('settings')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      </button>
+    </nav>
+
+    <!-- Sidebar Panel (desktop only) -->
+    <aside class="sidebar-panel" id="sidebar-panel">
+      <div class="panel-header" id="panel-header"></div>
+      <div class="panel-content" id="panel-content"></div>
+    </aside>
+
+    <!-- Peek Panel (hover overlay — always rendered) -->
+    <div class="peek-panel" id="peek-panel">
+      <div class="peek-inner" id="peek-inner"></div>
+    </div>
+
+    <!-- Mobile Drawer Overlay (always rendered) -->
+    <div class="drawer-overlay" id="drawer-overlay" onclick="closeDrawer()"></div>
+    <!-- Mobile Drawer Nav (always rendered) -->
+    <nav class="drawer-nav" id="drawer-nav" role="dialog" aria-modal="true">
+      <div class="drawer-rail" id="drawer-rail"></div>
+      <div class="drawer-panel" id="drawer-panel"></div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content" id="main-content">
+      <div class="main-body" id="main-body"></div>
+    </main>
+  </div>
+</div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
