@@ -141,11 +141,7 @@ class SelectiveExecutionPlanner:
             return False
 
         # Must be core maturity for full optimization
-        maturity = get_maturity(adapter)
-        if maturity != MaturityLevel.CORE:
-            return False
-
-        return True
+        return get_maturity(adapter) == MaturityLevel.CORE
 
     def find_subgraphs(self, config: PipelineConfig) -> list[list[str]]:
         """Find maximal connected deterministic sub-graphs.
