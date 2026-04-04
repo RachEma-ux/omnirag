@@ -7,7 +7,6 @@ Production deployments should set these via K8s secrets / .env files.
 from __future__ import annotations
 
 import os
-from typing import Any
 
 from pydantic import BaseModel, Field
 
