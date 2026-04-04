@@ -1,7 +1,10 @@
-"""Interpreted pipeline executor.
+"""Pipeline executor — interpreted and compiled modes.
 
 Walks the DAG in topological order, executing each stage via its
 adapter or runtime, passing canonical models between stages.
+
+When a SelectiveExecutionPlanner is provided, deterministic sub-graphs
+are executed as fused compiled functions for better performance.
 """
 
 from __future__ import annotations
@@ -21,10 +24,27 @@ logger = structlog.get_logger()
 
 
 class InterpretedExecutor:
-    """Execute a pipeline by interpreting the DAG stage by stage."""
+    """Execute a pipeline by interpreting the DAG stage by stage.
 
-    def __init__(self, registry: AdapterRegistry | None = None) -> None:
+    Optionally uses the Selective Execution Planner to compile and
+    fuse deterministic sub-graphs for faster execution.
+    """
+
+    def __init__(
+        self,
+        registry: AdapterRegistry | None = None,
+        use_compiler: bool = False,
+    ) -> None:
         self.registry = registry or adapter_registry
+        self.use_compiler = use_compiler
+        self._planner: Any = None
+
+    def _get_planner(self) -> Any:
+        """Lazy-load the planner to avoid circular imports."""
+        if self._planner is None:
+            from omnirag.compiler.planner import SelectiveExecutionPlanner
+            self._planner = SelectiveExecutionPlanner(registry=self.registry)
+        return self._planner
 
     def execute(
         self,
@@ -34,27 +54,52 @@ class InterpretedExecutor:
     ) -> GenerationResult:
         """Execute a pipeline end-to-end.
 
-        Args:
-            config: Validated pipeline configuration.
-            query: User query string.
-            **kwargs: Additional parameters passed to stages.
-
-        Returns:
-            GenerationResult from the final stage.
+        If use_compiler is True, deterministic sub-graphs are compiled
+        and executed as fused functions.
         """
         dag = PipelineDAG(config)
-        execution_order = dag.topological_sort()
-
-        # Stage outputs indexed by stage ID
-        outputs: dict[str, Any] = {"query": query}
         start_time = time.monotonic()
 
         logger.info(
             "pipeline.execute.start",
             pipeline=config.name,
-            stages=len(execution_order),
+            stages=dag.stage_count,
             strategy=config.execution.strategy,
+            compiled=self.use_compiler,
         )
+
+        if self.use_compiler:
+            outputs = self._execute_with_compiler(config, dag, query, **kwargs)
+        else:
+            outputs = self._execute_interpreted(dag, query, **kwargs)
+
+        total_ms = round((time.monotonic() - start_time) * 1000, 2)
+        logger.info("pipeline.execute.complete", pipeline=config.name, duration_ms=total_ms)
+
+        # Return the output of the last stage
+        order = dag.topological_sort()
+        last_stage_id = order[-1]
+        final_output = outputs.get(last_stage_id, "")
+
+        if isinstance(final_output, GenerationResult):
+            final_output.metadata["duration_ms"] = total_ms
+            return final_output
+
+        return GenerationResult(
+            answer=str(final_output),
+            confidence=0.5,
+            metadata={"pipeline": config.name, "duration_ms": total_ms},
+        )
+
+    def _execute_interpreted(
+        self,
+        dag: PipelineDAG,
+        query: str,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        """Pure interpreted execution — every stage goes through the full path."""
+        execution_order = dag.topological_sort()
+        outputs: dict[str, Any] = {"query": query}
 
         for stage_id in execution_order:
             stage = dag.get_stage(stage_id)
@@ -67,32 +112,87 @@ class InterpretedExecutor:
                 logger.info(
                     "stage.execute.complete",
                     stage=stage_id,
+                    mode="interpreted",
                     duration_ms=round((time.monotonic() - stage_start) * 1000, 2),
                 )
             except Exception as e:
-                logger.error(
-                    "stage.execute.error",
-                    stage=stage_id,
-                    error=str(e),
-                )
+                logger.error("stage.execute.error", stage=stage_id, error=str(e))
                 raise StageExecutionError(stage_id, str(e)) from e
 
-        total_ms = round((time.monotonic() - start_time) * 1000, 2)
-        logger.info("pipeline.execute.complete", pipeline=config.name, duration_ms=total_ms)
+        return outputs
 
-        # Return the output of the last stage
-        last_stage_id = execution_order[-1]
-        final_output = outputs[last_stage_id]
+    def _execute_with_compiler(
+        self,
+        config: PipelineConfig,
+        dag: PipelineDAG,
+        query: str,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        """Execution with compiler — fuse deterministic sub-graphs."""
+        planner = self._get_planner()
+        plan = planner.get_execution_plan(config)
+        compiled_subgraphs = planner.compile(config)
 
-        if isinstance(final_output, GenerationResult):
-            return final_output
+        outputs: dict[str, Any] = {"query": query}
 
-        # Wrap non-GenerationResult output
-        return GenerationResult(
-            answer=str(final_output),
-            confidence=0.5,
-            metadata={"pipeline": config.name, "duration_ms": total_ms},
-        )
+        for step in plan:
+            step_start = time.monotonic()
+
+            if step["type"] == "compiled":
+                # Find the matching compiled subgraph
+                sg = next(
+                    (s for s in compiled_subgraphs if s.subgraph_id == step["subgraph_id"]),
+                    None,
+                )
+                if sg is None:
+                    # Fallback to interpreted
+                    for sid in step["stages"]:
+                        stage = dag.get_stage(sid)
+                        outputs[sid] = self._execute_stage(stage, outputs, query, **kwargs)
+                    continue
+
+                # Resolve input for the first stage of the subgraph
+                first_stage = dag.get_stage(step["stages"][0])
+                input_data = None
+                if first_stage.input:
+                    input_data = outputs.get(first_stage.input, query)
+
+                # Execute the fused subgraph
+                result = sg.execute(input_data, query, self.registry, **kwargs)
+
+                # Store output under the last stage ID
+                last_stage_id = step["stages"][-1]
+                outputs[last_stage_id] = result
+                # Also store for intermediate references
+                for sid in step["stages"]:
+                    outputs[sid] = result
+
+                logger.info(
+                    "subgraph.execute.complete",
+                    subgraph=step["subgraph_id"],
+                    stages=step["stages"],
+                    mode="compiled",
+                    duration_ms=round((time.monotonic() - step_start) * 1000, 2),
+                )
+            else:
+                # Interpreted stage
+                stage_id = step["stages"][0]
+                stage = dag.get_stage(stage_id)
+                try:
+                    result = self._execute_stage(stage, outputs, query, **kwargs)
+                    outputs[stage_id] = result
+
+                    logger.info(
+                        "stage.execute.complete",
+                        stage=stage_id,
+                        mode="interpreted",
+                        duration_ms=round((time.monotonic() - step_start) * 1000, 2),
+                    )
+                except Exception as e:
+                    logger.error("stage.execute.error", stage=stage_id, error=str(e))
+                    raise StageExecutionError(stage_id, str(e)) from e
+
+        return outputs
 
     def _execute_stage(
         self,
@@ -102,7 +202,6 @@ class InterpretedExecutor:
         **kwargs: Any,
     ) -> Any:
         """Execute a single stage."""
-        # Resolve input data
         input_data = None
         if stage.input:
             input_data = outputs.get(stage.input)
@@ -111,12 +210,10 @@ class InterpretedExecutor:
                     stage.id, f"Input '{stage.input}' not found in outputs"
                 )
 
-        # Execute via adapter (shared runtime)
         if stage.adapter and self.registry.has(stage.adapter):
             adapter = self.registry.get(stage.adapter)
             return self._call_adapter(adapter, stage, input_data, query, **kwargs)
 
-        # Execute via runtime component
         if stage.runtime != "shared" and stage.component:
             return self._call_runtime(stage, input_data, query, **kwargs)
 
@@ -166,7 +263,6 @@ class InterpretedExecutor:
         **kwargs: Any,
     ) -> Any:
         """Call a native runtime component."""
-        # TODO: Load runtime, call component
         raise StageExecutionError(
             stage.id,
             f"Runtime '{stage.runtime}' component execution not yet implemented",

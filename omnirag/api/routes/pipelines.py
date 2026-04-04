@@ -64,6 +64,25 @@ async def get_pipeline(name: str) -> PipelineResponse:
     )
 
 
+@router.get("/{name}/plan")
+async def get_execution_plan(name: str) -> dict:
+    """Get the compiled execution plan for a pipeline."""
+    config = _pipelines.get(name)
+    if config is None:
+        raise HTTPException(status_code=404, detail=f"Pipeline '{name}' not found")
+
+    from omnirag.compiler.planner import SelectiveExecutionPlanner
+    planner = SelectiveExecutionPlanner()
+    analysis = planner.analyze(config)
+    plan = planner.get_execution_plan(config)
+
+    return {
+        "pipeline": name,
+        "analysis": analysis,
+        "execution_plan": plan,
+    }
+
+
 @router.get("/", response_model=list[PipelineResponse])
 async def list_pipelines() -> list[PipelineResponse]:
     """List all registered pipelines."""
