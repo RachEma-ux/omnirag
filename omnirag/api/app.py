@@ -108,7 +108,20 @@ def create_app() -> FastAPI:
   .swagger-ui .prop-type {{ color: #6366f1; }}
   .swagger-ui .prop-format {{ color: #555; }}
   .swagger-ui textarea {{ background: #1e1e1e; color: #e8e8e8; border: 1px solid #2a2a2a; }}
-  .swagger-ui select {{ background: #1e1e1e; color: #e8e8e8; border: 1px solid #2a2a2a; }}
+  .swagger-ui select {{
+    background: #1e1e1e; color: #e8e8e8; border: 1px solid #2a2a2a;
+    -webkit-appearance: none; appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888888' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 10px center; background-size: 12px;
+    padding-right: 28px;
+  }}
+  .swagger-ui .opblock-summary-control svg {{ fill: #888; }}
+  .swagger-ui .expand-methods svg, .swagger-ui .expand-operation svg {{ fill: #888; }}
+  .swagger-ui .model-toggle svg {{ fill: #888; }}
+  .swagger-ui .arrow {{ fill: #888 !important; }}
+  .swagger-ui svg.arrow {{ fill: #888 !important; }}
+  .swagger-ui .opblock-tag svg {{ fill: #888; }}
+  .swagger-ui section.models .model-container svg {{ fill: #888; }}
   .swagger-ui input[type=text], .swagger-ui input[type=password], .swagger-ui input[type=search], .swagger-ui input[type=email] {{
     background: #1e1e1e; color: #e8e8e8; border: 1px solid #2a2a2a;
   }}
