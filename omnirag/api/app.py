@@ -15,6 +15,7 @@ from omnirag.api.routes.invoke import router as invoke_router
 from omnirag.api.routes.pipelines import router as pipelines_router
 from omnirag.api.routes.tasks import router as tasks_router
 from omnirag.api.routes.websocket import router as ws_router
+from omnirag.api.routes.intake import router as intake_router
 from omnirag.observability.metrics import metrics
 
 STATIC_DIR = Path(__file__).parent / "static"
@@ -45,6 +46,7 @@ def create_app() -> FastAPI:
     app.include_router(invoke_router, tags=["invoke"])
     app.include_router(tasks_router, tags=["tasks"])
     app.include_router(ws_router, tags=["websocket"])
+    app.include_router(intake_router, tags=["intake"])
 
     # Prometheus metrics endpoint
     @app.get("/metrics", response_class=PlainTextResponse, tags=["observability"])
@@ -294,5 +296,8 @@ Redoc.init("/openapi.json", {
     async def startup() -> None:
         from omnirag.adapters.defaults import register_defaults
         register_defaults()
+
+        from omnirag.intake.defaults import register_defaults as register_intake
+        register_intake()
 
     return app
