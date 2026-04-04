@@ -159,21 +159,113 @@ SwaggerUIBundle({{
     # Custom dark ReDoc
     @app.get("/redoc", response_class=HTMLResponse, include_in_schema=False)
     async def custom_redoc():
-        return f"""<!DOCTYPE html>
+        return """<!DOCTYPE html>
 <html><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>OmniRAG — ReDoc</title>
 <style>
-  body {{ margin: 0; padding: 0; }}
-  ::-webkit-scrollbar {{ width: 6px; }}
-  ::-webkit-scrollbar-track {{ background: transparent; }}
-  ::-webkit-scrollbar-thumb {{ background: rgba(255,255,255,0.06); border-radius: 3px; }}
+  html, body { margin: 0; padding: 0; background: #0d0d0d; }
+  /* Force dark on every ReDoc surface */
+  .redoc-wrap { background: #0d0d0d !important; color: #e8e8e8 !important; }
+  /* Left nav sidebar */
+  .menu-content { background: #0d0d0d !important; }
+  [role="navigation"] { background: #0d0d0d !important; }
+  .menu-content label, .menu-content a, .menu-content span { color: #888 !important; }
+  .menu-content label.-active, .menu-content a.-active { color: #e8e8e8 !important; }
+  .menu-content ul { background: #0d0d0d !important; }
+  .menu-content li { border-color: #2a2a2a !important; }
+  /* Middle panel */
+  .api-content { background: #0d0d0d !important; }
+  .api-content h1, .api-content h2, .api-content h3, .api-content h4, .api-content h5 { color: #e8e8e8 !important; }
+  .api-content p, .api-content li, .api-content td, .api-content span { color: #888 !important; }
+  .api-content a { color: #6366f1 !important; }
+  .api-content table { border-color: #2a2a2a !important; }
+  .api-content th { color: #888 !important; background: #151515 !important; border-color: #2a2a2a !important; }
+  .api-content td { border-color: #1c1c1c !important; }
+  .api-content tr { background: #0d0d0d !important; }
+  .api-content code { background: #1e1e1e !important; color: #6366f1 !important; }
+  .api-content pre { background: #0a0c0f !important; color: #a1a7b4 !important; border-color: #2a2a2a !important; }
+  /* Right panel (code samples) */
+  [data-role="right-panel"], .react-tabs__tab-panel { background: #0a0c0f !important; }
+  .react-tabs__tab { background: #151515 !important; color: #888 !important; border-color: #2a2a2a !important; }
+  .react-tabs__tab--selected { color: #e8e8e8 !important; border-bottom-color: #6366f1 !important; }
+  /* HTTP method badges */
+  .http-verb { border-radius: 4px !important; font-weight: 600 !important; }
+  .http-verb.get { background: #6366f1 !important; }
+  .http-verb.post { background: #4caf50 !important; }
+  .http-verb.put { background: #f59e0b !important; }
+  .http-verb.delete { background: #ef4444 !important; }
+  /* Schema */
+  .model-title { color: #e8e8e8 !important; }
+  .property .property-name { color: #e8e8e8 !important; }
+  .property .property-type { color: #6366f1 !important; }
+  .property .property-format { color: #555 !important; }
+  .property .property-required { color: #ef4444 !important; }
+  [kind="field"] { border-color: #2a2a2a !important; }
+  /* Nested model containers */
+  .model-title-container, .model { background: #151515 !important; }
+  /* Response panels */
+  .responses-list .response-title { color: #e8e8e8 !important; }
+  /* Buttons */
+  button { background: #1c1c1c !important; color: #e8e8e8 !important; border-color: #2a2a2a !important; }
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.06); border-radius: 3px; }
+  /* Search */
+  .search-input { background: #1e1e1e !important; color: #e8e8e8 !important; border-color: #2a2a2a !important; }
+  /* Bottom bar / footer */
+  .powered-by { background: #0d0d0d !important; }
+  .powered-by a { color: #555 !important; }
 </style>
 </head><body>
-<redoc spec-url="/openapi.json"
-  theme='{{"colors":{{"primary":{{"main":"#6366f1"}},"success":{{"main":"#4caf50"}},"warning":{{"main":"#f59e0b"}},"error":{{"main":"#ef4444"}},"text":{{"primary":"#e8e8e8","secondary":"#888"}},"http":{{"get":"#6366f1","post":"#4caf50","put":"#f59e0b","delete":"#ef4444","patch":"#818cf8"}},"responses":{{"success":{{"backgroundColor":"#151515","color":"#e8e8e8"}},"error":{{"backgroundColor":"#1c1c1c","color":"#ef4444"}}}}}},"typography":{{"fontSize":"14px","fontFamily":"-apple-system, Inter, sans-serif","code":{{"fontSize":"12px","fontFamily":"JetBrains Mono, Fira Code, monospace","backgroundColor":"#0a0c0f","color":"#a1a7b4"}},"headings":{{"fontFamily":"-apple-system, Inter, sans-serif"}}}},"sidebar":{{"backgroundColor":"#0d0d0d","textColor":"#888","activeTextColor":"#e8e8e8","groupItems":{{"textTransform":"uppercase"}},"arrow":{{"color":"#555"}}}},"rightPanel":{{"backgroundColor":"#0a0c0f"}},"schema":{{"nestedBackground":"#151515","typeNameColor":"#6366f1","typeTitleColor":"#e8e8e8"}}}}'
-></redoc>
+<div id="redoc-container"></div>
 <script src="https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js"></script>
+<script>
+Redoc.init("/openapi.json", {
+  theme: {
+    colors: {
+      primary: { main: "#6366f1" },
+      success: { main: "#4caf50" },
+      warning: { main: "#f59e0b" },
+      error: { main: "#ef4444" },
+      text: { primary: "#e8e8e8", secondary: "#888" },
+      border: { dark: "#2a2a2a", light: "#1c1c1c" },
+      http: {
+        get: "#6366f1", post: "#4caf50", put: "#f59e0b",
+        delete: "#ef4444", patch: "#818cf8", options: "#555"
+      }
+    },
+    typography: {
+      fontSize: "14px",
+      fontFamily: "-apple-system, Inter, sans-serif",
+      headings: { fontFamily: "-apple-system, Inter, sans-serif" },
+      code: {
+        fontSize: "12px",
+        fontFamily: "JetBrains Mono, Fira Code, monospace",
+        backgroundColor: "#0a0c0f",
+        color: "#a1a7b4"
+      },
+      links: { color: "#6366f1" }
+    },
+    sidebar: {
+      backgroundColor: "#0d0d0d",
+      textColor: "#888",
+      activeTextColor: "#e8e8e8",
+      groupItems: { textTransform: "uppercase" },
+      arrow: { color: "#555" }
+    },
+    rightPanel: { backgroundColor: "#0a0c0f" },
+    schema: {
+      nestedBackground: "#151515",
+      typeNameColor: "#6366f1",
+      typeTitleColor: "#e8e8e8"
+    }
+  },
+  hideDownloadButton: true,
+  nativeScrollbars: true
+}, document.getElementById("redoc-container"));
+</script>
 </body></html>"""
 
     # Static files
