@@ -1,0 +1,36 @@
+replicaCount: 1
+
+image:
+  repository: ghcr.io/rachema-ux/omnirag
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+service:
+  type: ClusterIP
+  port: 8100
+
+resources:
+  requests:
+    memory: "512Mi"
+    cpu: "250m"
+  limits:
+    memory: "2Gi"
+    cpu: "1"
+
+env:
+  OMNIRAG_API_KEYS: ""
+  OMNIRAG_RATE_LIMIT: "100"
+
+qdrant:
+  enabled: true
+  url: "http://qdrant:6333"
+
+redis:
+  enabled: true
+  url: "redis://redis:6379"
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 70

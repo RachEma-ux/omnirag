@@ -11,6 +11,7 @@ from omnirag.api.routes.health import router as health_router
 from omnirag.api.routes.invoke import router as invoke_router
 from omnirag.api.routes.pipelines import router as pipelines_router
 from omnirag.api.routes.tasks import router as tasks_router
+from omnirag.api.routes.websocket import router as ws_router
 from omnirag.observability.metrics import metrics
 
 
@@ -38,6 +39,7 @@ def create_app() -> FastAPI:
     app.include_router(pipelines_router, prefix="/pipelines", tags=["pipelines"])
     app.include_router(invoke_router, tags=["invoke"])
     app.include_router(tasks_router, tags=["tasks"])
+    app.include_router(ws_router, tags=["websocket"])
 
     # Prometheus metrics endpoint
     @app.get("/metrics", response_class=PlainTextResponse, tags=["observability"])
