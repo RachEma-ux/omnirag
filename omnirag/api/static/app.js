@@ -838,45 +838,45 @@ async function graphragQuery(mode) {
   const result = document.getElementById('graphrag-result');
   result.innerHTML = '<div style="display:flex;align-items:center;gap:8px;margin-top:12px;"><div class="spinner"></div> Querying...</div>';
   try {
-    const r = await fetch(\`\${API}/graphrag/query/\${mode}\`, {
+    const r = await fetch(`${API}/graphrag/query/${mode}`, {
       method: 'POST', headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({ query, user_principal: 'public' }),
     });
     const data = await r.json();
-    result.innerHTML = \`
+    result.innerHTML = `
       <div class="card" style="margin-top:12px;">
-        <div class="card-title">Result <span class="badge badge-info">\${data.mode || mode}</span></div>
+        <div class="card-title">Result <span class="badge badge-info">${data.mode || mode}</span></div>
         <div class="card-body">
-          <p style="color:var(--text); margin-bottom:8px;">\${data.answer || 'No answer'}</p>
-          \${data.citations?.length ? '<p style="color:var(--text-dim); font-size:12px;">Citations: ' + data.citations.map(c => '<code>' + c.chunk_id?.slice(0,8) + '</code>').join(', ') + '</p>' : ''}
+          <p style="color:var(--text); margin-bottom:8px;">${data.answer || 'No answer'}</p>
+          ${data.citations?.length ? '<p style="color:var(--text-dim); font-size:12px;">Citations: ' + data.citations.map(c => '<code>' + c.chunk_id?.slice(0,8) + '</code>').join(', ') + '</p>' : ''}
           <p style="color:var(--text-muted); font-size:11px; margin-top:8px;">
-            Mode: \${data.mode || mode} · Latency: \${data.latency_ms || '—'}ms · Cache: \${data.cache_hit ? 'HIT' : 'MISS'}
+            Mode: ${data.mode || mode} · Latency: ${data.latency_ms || '—'}ms · Cache: ${data.cache_hit ? 'HIT' : 'MISS'}
           </p>
         </div>
       </div>
-    \`;
-  } catch(e) { result.innerHTML = \`<div class="card" style="margin-top:12px;"><div class="card-title" style="color:var(--error)">Error</div><div class="card-body"><code>\${e.message}</code></div></div>\`; }
+    `;
+  } catch(e) { result.innerHTML = `<div class="card" style="margin-top:12px;"><div class="card-title" style="color:var(--error)">Error</div><div class="card-body"><code>${e.message}</code></div></div>`; }
 }
 
 async function loadGraphStats() {
   try {
-    const data = await fetch(\`\${API}/graphrag/stats\`).then(r => r.json());
-    document.getElementById('graphrag-stats').innerHTML = \`
+    const data = await fetch(`${API}/graphrag/stats`).then(r => r.json());
+    document.getElementById('graphrag-stats').innerHTML = `
       <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(120px,1fr)); gap:8px;">
-        <div><strong style="color:var(--text)">\${data.graph?.entities || 0}</strong><br><span style="font-size:11px; color:var(--text-dim)">Entities</span></div>
-        <div><strong style="color:var(--text)">\${data.graph?.relationships || 0}</strong><br><span style="font-size:11px; color:var(--text-dim)">Relationships</span></div>
-        <div><strong style="color:var(--text)">\${data.graph?.communities || 0}</strong><br><span style="font-size:11px; color:var(--text-dim)">Communities</span></div>
-        <div><strong style="color:var(--text)">\${data.graph?.reports || 0}</strong><br><span style="font-size:11px; color:var(--text-dim)">Reports</span></div>
-        <div><strong style="color:var(--text)">\${data.cache?.hits || 0}</strong><br><span style="font-size:11px; color:var(--text-dim)">Cache Hits</span></div>
-        <div><strong style="color:var(--text)">\${data.stale_communities || 0}</strong><br><span style="font-size:11px; color:var(--text-dim)">Stale</span></div>
+        <div><strong style="color:var(--text)">${data.graph?.entities || 0}</strong><br><span style="font-size:11px; color:var(--text-dim)">Entities</span></div>
+        <div><strong style="color:var(--text)">${data.graph?.relationships || 0}</strong><br><span style="font-size:11px; color:var(--text-dim)">Relationships</span></div>
+        <div><strong style="color:var(--text)">${data.graph?.communities || 0}</strong><br><span style="font-size:11px; color:var(--text-dim)">Communities</span></div>
+        <div><strong style="color:var(--text)">${data.graph?.reports || 0}</strong><br><span style="font-size:11px; color:var(--text-dim)">Reports</span></div>
+        <div><strong style="color:var(--text)">${data.cache?.hits || 0}</strong><br><span style="font-size:11px; color:var(--text-dim)">Cache Hits</span></div>
+        <div><strong style="color:var(--text)">${data.stale_communities || 0}</strong><br><span style="font-size:11px; color:var(--text-dim)">Stale</span></div>
       </div>
-    \`;
+    `;
   } catch { document.getElementById('graphrag-stats').textContent = 'Failed to load stats'; }
 }
 
 function renderGraphTab() {
   const body = document.getElementById('main-body');
-  body.innerHTML = \`
+  body.innerHTML = `
     <div style="max-width:700px;">
       <h2 style="font-size:18px; font-weight:600; color:var(--text); margin-bottom:16px;">Knowledge Graph</h2>
       <div class="card">
@@ -894,7 +894,7 @@ function renderGraphTab() {
         <div class="card-body" id="graph-store-info">Loading...</div>
       </div>
     </div>
-  \`;
+  `;
   loadGraphStats();
   document.getElementById('graph-store-info').innerHTML = document.getElementById('graphrag-stats')?.innerHTML || 'See GraphRAG tab for stats';
 }
@@ -906,18 +906,18 @@ async function searchEntity() {
   result.innerHTML = '<div class="spinner"></div>';
   try {
     // Use local search as entity lookup
-    const r = await fetch(\`\${API}/graphrag/query/local\`, {
+    const r = await fetch(`${API}/graphrag/query/local`, {
       method: 'POST', headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({ query: 'details about ' + name, user_principal: 'public' }),
     });
     const data = await r.json();
     const entities = data.evidence?.entities_count || 0;
-    result.innerHTML = \`
+    result.innerHTML = `
       <div style="margin-top:8px;">
-        <p style="color:var(--text);">Found \${entities} related entities</p>
-        \${data.answer ? '<p style="color:var(--text-dim); margin-top:8px;">' + data.answer + '</p>' : ''}
+        <p style="color:var(--text);">Found ${entities} related entities</p>
+        ${data.answer ? '<p style="color:var(--text-dim); margin-top:8px;">' + data.answer + '</p>' : ''}
       </div>
-    \`;
+    `;
   } catch(e) { result.innerHTML = '<p style="color:var(--error);">' + e.message + '</p>'; }
 }
 
@@ -925,14 +925,14 @@ async function searchEntity() {
 
 function renderChatWelcome() {
   const el = document.getElementById('chat-messages');
-  el.innerHTML = \`
+  el.innerHTML = `
     <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; gap:16px; padding:40px 20px; text-align:center;">
       <div style="font-size:24px; font-weight:700; color:var(--text); opacity:0.12;">OmniRAG Chat</div>
       <p style="color:var(--text-dim); font-size:14px; max-width:400px;">
         Ask questions about your ingested documents. Uses hybrid RAG + GraphRAG for answers with citations.
       </p>
     </div>
-  \`;
+  `;
 }
 
 function chatAddMessage(role, content) {
@@ -944,9 +944,9 @@ function renderChatMessages() {
   const el = document.getElementById('chat-messages');
   el.innerHTML = chatMessages.map(msg => {
     if (msg.role === 'user') {
-      return \`<div class="chat-msg-user"><div class="chat-msg-user-body"><div class="chat-msg-user-text">\${escapeHtml(msg.content)}</div></div></div>\`;
+      return `<div class="chat-msg-user"><div class="chat-msg-user-body"><div class="chat-msg-user-text">${escapeHtml(msg.content)}</div></div></div>`;
     }
-    return \`<div class="chat-msg-assistant"><div class="chat-msg-assistant-text">\${msg.content}</div></div>\`;
+    return `<div class="chat-msg-assistant"><div class="chat-msg-assistant-text">${msg.content}</div></div>`;
   }).join('');
   el.scrollTop = el.scrollHeight;
 }
@@ -977,12 +977,12 @@ async function chatSend() {
   // Add thinking indicator
   const el = document.getElementById('chat-messages');
   const thinkingId = 'thinking-' + Date.now();
-  el.innerHTML += \`<div class="chat-msg-assistant" id="\${thinkingId}"><div class="chat-thinking"><div class="spinner"></div> Searching & generating...</div></div>\`;
+  el.innerHTML += `<div class="chat-msg-assistant" id="${thinkingId}"><div class="chat-thinking"><div class="spinner"></div> Searching & generating...</div></div>`;
   el.scrollTop = el.scrollHeight;
 
   try {
     // Try hybrid search first
-    const r = await fetch(\`\${API}/v1/search\`, {
+    const r = await fetch(`${API}/v1/search`, {
       method: 'POST', headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({ query, top_k: 5 }),
     });
@@ -997,18 +997,18 @@ async function chatSend() {
     if (data.citations?.length) {
       response += '<br><br><strong>Citations:</strong><br>';
       response += data.citations.map(c =>
-        \`<code>\${c.doc_id?.slice(0,8)}:\${c.chunk_id?.slice(0,8)}</code> \${c.snippet || ''}\`
+        `<code>${c.doc_id?.slice(0,8)}:${c.chunk_id?.slice(0,8)}</code> ${c.snippet || ''}`
       ).join('<br>');
     }
     if (data.metadata) {
-      response += \`<br><br><span style="font-size:11px; color:var(--text-muted);">Mode: \${data.metadata.mode} · Retrieval: \${data.metadata.retrieval_latency_ms}ms · Generation: \${data.metadata.generation_latency_ms}ms</span>\`;
+      response += `<br><br><span style="font-size:11px; color:var(--text-muted);">Mode: ${data.metadata.mode} · Retrieval: ${data.metadata.retrieval_latency_ms}ms · Generation: ${data.metadata.generation_latency_ms}ms</span>`;
     }
 
     chatAddMessage('assistant', response);
   } catch(e) {
     const thinking = document.getElementById(thinkingId);
     if (thinking) thinking.remove();
-    chatAddMessage('assistant', \`<span style="color:var(--error);">Error: \${e.message}</span>\`);
+    chatAddMessage('assistant', `<span style="color:var(--error);">Error: ${e.message}</span>`);
   }
 }
 
