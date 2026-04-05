@@ -822,31 +822,185 @@ function renderGraphRAGTab() {
   const body = document.getElementById('main-body');
   body.innerHTML = `
     <div style="max-width:700px;">
-      <h2 style="font-size:18px; font-weight:600; color:var(--text); margin-bottom:16px;">OmniGraph</h2>
-      <div class="card">
-        <div class="card-title">Query Modes</div>
-        <div class="card-body">
-          <div style="display:flex; flex-direction:column; gap:12px;">
-            <div style="display:flex; gap:8px;">
-              <input class="input" id="graphrag-query" placeholder="Ask a question..." style="flex:1;" />
-            </div>
-            <div style="display:flex; gap:8px; flex-wrap:wrap;">
-              <button class="btn btn-primary" onclick="graphragQuery('local')">Local Search</button>
-              <button class="btn" onclick="graphragQuery('global')">Global Search</button>
-              <button class="btn" onclick="graphragQuery('drift')">DRIFT Search</button>
-              <button class="btn" onclick="graphragQuery('route')">Auto Route</button>
-            </div>
-          </div>
+      <!-- Query Section -->
+      <div class="card" style="margin-bottom:12px;">
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+          <span style="font-size:16px;">🔮</span>
+          <span style="font-size:14px; font-weight:600; color:var(--text);">OmniGraph Query</span>
+        </div>
+        <div style="display:flex; gap:8px; margin-bottom:10px;">
+          <input class="input" id="graphrag-query" placeholder="Ask a question about your knowledge graph..." style="flex:1;" />
+        </div>
+        <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px;">
+          <button class="btn btn-primary" onclick="graphragQuery('route')" style="font-size:12px;">Auto Route</button>
+          <button class="btn" onclick="graphragQuery('local')" style="font-size:12px;">Local</button>
+          <button class="btn" onclick="graphragQuery('global')" style="font-size:12px;">Global</button>
+          <button class="btn" onclick="graphragQuery('drift')" style="font-size:12px;">DRIFT</button>
+          <button class="btn" onclick="graphragQuery('hybrid')" style="font-size:12px;">Hybrid</button>
+        </div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <select id="extraction-mode" class="input" style="width:auto; font-size:11px; padding:4px 8px;">
+            <option value="hybrid">Extraction: Hybrid</option>
+            <option value="llm">Extraction: LLM</option>
+            <option value="regex">Extraction: Regex</option>
+            <option value="schema">Extraction: Schema</option>
+          </select>
+          <select id="schema-select" class="input" style="width:auto; font-size:11px; padding:4px 8px;">
+            <option value="default">Schema: Default</option>
+            <option value="legal">Schema: Legal</option>
+            <option value="medical">Schema: Medical</option>
+            <option value="financial">Schema: Financial</option>
+          </select>
         </div>
       </div>
       <div id="graphrag-result"></div>
-      <div class="card" style="margin-top:16px;">
-        <div class="card-title">Graph Stats</div>
-        <div class="card-body" id="graphrag-stats">Loading...</div>
+
+      <!-- Graph Stats -->
+      <div class="card" style="margin-bottom:12px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+          <div style="display:flex; align-items:center; gap:6px;">
+            <span style="font-size:14px;">📊</span>
+            <span class="card-title" style="margin:0;">Knowledge Graph</span>
+          </div>
+          <button class="btn" onclick="loadGraphStats()" style="font-size:11px; padding:3px 8px;">Refresh</button>
+        </div>
+        <div id="graphrag-stats">Loading...</div>
+      </div>
+
+      <!-- Tools & Services -->
+      <div class="card" style="margin-bottom:12px;">
+        <div style="display:flex; align-items:center; gap:6px; margin-bottom:10px;">
+          <span style="font-size:14px;">🛠</span>
+          <span class="card-title" style="margin:0;">Services</span>
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(130px,1fr)); gap:6px;">
+          <div class="card" style="padding:8px; margin:0; cursor:pointer; text-align:center;" onclick="showMCPTools()">
+            <div style="font-size:16px; margin-bottom:2px;">🔌</div>
+            <div style="font-size:11px; color:var(--text);">MCP Tools</div>
+            <div style="font-size:10px; color:var(--text-dim);">5 tools</div>
+          </div>
+          <div class="card" style="padding:8px; margin:0; cursor:pointer; text-align:center;" onclick="showWorkflows()">
+            <div style="font-size:16px; margin-bottom:2px;">⚡</div>
+            <div style="font-size:11px; color:var(--text);">Workflows</div>
+            <div style="font-size:10px; color:var(--text-dim);">LangGraph</div>
+          </div>
+          <div class="card" style="padding:8px; margin:0; cursor:pointer; text-align:center;" onclick="showAgents()">
+            <div style="font-size:16px; margin-bottom:2px;">🤖</div>
+            <div style="font-size:11px; color:var(--text);">Agents</div>
+            <div style="font-size:10px; color:var(--text-dim);">AutoGen</div>
+          </div>
+          <div class="card" style="padding:8px; margin:0; cursor:pointer; text-align:center;" onclick="showAnalytics()">
+            <div style="font-size:16px; margin-bottom:2px;">📈</div>
+            <div style="font-size:11px; color:var(--text);">Analytics</div>
+            <div style="font-size:10px; color:var(--text-dim);">Export</div>
+          </div>
+          <div class="card" style="padding:8px; margin:0; cursor:pointer; text-align:center;" onclick="showTraces()">
+            <div style="font-size:16px; margin-bottom:2px;">🔍</div>
+            <div style="font-size:11px; color:var(--text);">Traces</div>
+            <div style="font-size:10px; color:var(--text-dim);">Audit</div>
+          </div>
+          <div class="card" style="padding:8px; margin:0; cursor:pointer; text-align:center;" onclick="showContracts()">
+            <div style="font-size:16px; margin-bottom:2px;">📋</div>
+            <div style="font-size:11px; color:var(--text);">Contracts</div>
+            <div style="font-size:10px; color:var(--text-dim);">23 ABCs</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Router Rules -->
+      <div class="card" style="margin-bottom:12px;">
+        <div style="display:flex; align-items:center; gap:6px; margin-bottom:8px;">
+          <span style="font-size:14px;">🧭</span>
+          <span class="card-title" style="margin:0;">Query Router</span>
+          <span class="badge badge-info" style="font-size:10px;">25 rules · 3 stages</span>
+        </div>
+        <div style="font-size:12px; color:var(--text-dim); line-height:1.6;">
+          <strong style="color:var(--text);">Stage 1:</strong> 25 YAML regex patterns (global/local/drift/basic/hybrid)<br>
+          <strong style="color:var(--text);">Stage 2:</strong> BERT classifier (MiniLM-L6, 4 classes)<br>
+          <strong style="color:var(--text);">Stage 3:</strong> Dynamic override (6 conditions: coverage, ACL, budget, load, cache, feedback)
+        </div>
       </div>
     </div>
   `;
   loadGraphStats();
+}
+
+// ─── OmniGraph Sub-pages ───
+
+async function showMCPTools() {
+  const body = document.getElementById('main-body');
+  body.innerHTML = '<div style="padding:0 0 12px;"><button onclick="renderGraphRAGTab()" style="display:flex;align-items:center;justify-content:center;width:24px;height:24px;background:none;border:none;color:var(--text-dim);cursor:pointer;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></button></div>';
+  try {
+    const tools = await fetch(`${API}/v1/mcp/tools`).then(r => r.json());
+    body.innerHTML += `<div style="max-width:700px;"><h2 style="font-size:16px;font-weight:600;color:var(--text);margin-bottom:12px;">MCP Tools (${tools.length})</h2>` +
+      tools.map(t => `<div class="card" style="margin-bottom:8px;"><div class="card-title">${t.name}</div><div style="font-size:12px;color:var(--text-dim);">${t.description}</div></div>`).join('') + '</div>';
+  } catch(e) { body.innerHTML += `<p style="color:var(--error);">${e.message}</p>`; }
+}
+
+async function showWorkflows() {
+  const body = document.getElementById('main-body');
+  body.innerHTML = '<div style="padding:0 0 12px;"><button onclick="renderGraphRAGTab()" style="display:flex;align-items:center;justify-content:center;width:24px;height:24px;background:none;border:none;color:var(--text-dim);cursor:pointer;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></button></div>';
+  try {
+    const data = await fetch(`${API}/v1/workflows`).then(r => r.json());
+    body.innerHTML += `<div style="max-width:700px;"><h2 style="font-size:16px;font-weight:600;color:var(--text);margin-bottom:12px;">Workflows</h2>` +
+      `<p style="color:var(--text-dim); margin-bottom:12px;">Available: ${data.available?.join(', ') || 'None registered yet'}</p>` +
+      `<p style="color:var(--text-dim);">Runs: ${data.runs?.length || 0}</p></div>`;
+  } catch(e) { body.innerHTML += `<p style="color:var(--error);">${e.message}</p>`; }
+}
+
+async function showAgents() {
+  const body = document.getElementById('main-body');
+  body.innerHTML = `<div style="padding:0 0 12px;"><button onclick="renderGraphRAGTab()" style="display:flex;align-items:center;justify-content:center;width:24px;height:24px;background:none;border:none;color:var(--text-dim);cursor:pointer;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></button></div>
+    <div style="max-width:700px;">
+      <h2 style="font-size:16px;font-weight:600;color:var(--text);margin-bottom:12px;">Multi-Agent (AutoGen)</h2>
+      <div class="card"><div class="card-title">🔬 Researcher</div><div style="font-size:12px;color:var(--text-dim);">Searches knowledge graph for entities, relationships, evidence</div></div>
+      <div class="card"><div class="card-title">📝 Analyst</div><div style="font-size:12px;color:var(--text-dim);">Synthesizes findings into coherent narrative with citations</div></div>
+      <div class="card"><div class="card-title">✅ Reviewer</div><div style="font-size:12px;color:var(--text-dim);">Validates accuracy, completeness, citations. Approves or requests revision</div></div>
+    </div>`;
+}
+
+async function showAnalytics() {
+  const body = document.getElementById('main-body');
+  body.innerHTML = '<div style="padding:0 0 12px;"><button onclick="renderGraphRAGTab()" style="display:flex;align-items:center;justify-content:center;width:24px;height:24px;background:none;border:none;color:var(--text-dim);cursor:pointer;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></button></div>';
+  try {
+    const data = await fetch(`${API}/v1/analytics/summary`).then(r => r.json());
+    body.innerHTML += `<div style="max-width:700px;"><h2 style="font-size:16px;font-weight:600;color:var(--text);margin-bottom:12px;">Analytics</h2>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;">
+        <div class="card" style="padding:10px;margin:0;text-align:center;"><div style="font-size:20px;font-weight:700;color:var(--text);">${data.entities||0}</div><div style="font-size:11px;color:var(--text-dim);">Entities</div></div>
+        <div class="card" style="padding:10px;margin:0;text-align:center;"><div style="font-size:20px;font-weight:700;color:var(--text);">${data.relationships||0}</div><div style="font-size:11px;color:var(--text-dim);">Relationships</div></div>
+        <div class="card" style="padding:10px;margin:0;text-align:center;"><div style="font-size:20px;font-weight:700;color:var(--text);">${data.communities||0}</div><div style="font-size:11px;color:var(--text-dim);">Communities</div></div>
+        <div class="card" style="padding:10px;margin:0;text-align:center;"><div style="font-size:20px;font-weight:700;color:var(--text);">${data.reports||0}</div><div style="font-size:11px;color:var(--text-dim);">Reports</div></div>
+        <div class="card" style="padding:10px;margin:0;text-align:center;"><div style="font-size:20px;font-weight:700;color:var(--text);">${data.traces||0}</div><div style="font-size:11px;color:var(--text-dim);">Traces</div></div>
+      </div>
+      <div style="margin-top:12px; display:flex; gap:6px; flex-wrap:wrap;">
+        <a href="/v1/analytics/entities" target="_blank" class="btn" style="font-size:11px; padding:3px 8px;">Export Entities</a>
+        <a href="/v1/analytics/communities" target="_blank" class="btn" style="font-size:11px; padding:3px 8px;">Export Communities</a>
+        <a href="/v1/analytics/relationships" target="_blank" class="btn" style="font-size:11px; padding:3px 8px;">Export Relationships</a>
+      </div>
+    </div>`;
+  } catch(e) { body.innerHTML += `<p style="color:var(--error);">${e.message}</p>`; }
+}
+
+async function showTraces() {
+  const body = document.getElementById('main-body');
+  body.innerHTML = '<div style="padding:0 0 12px;"><button onclick="renderGraphRAGTab()" style="display:flex;align-items:center;justify-content:center;width:24px;height:24px;background:none;border:none;color:var(--text-dim);cursor:pointer;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></button></div>';
+  try {
+    const data = await fetch(`${API}/lineage`).then(r => r.json());
+    body.innerHTML += `<div style="max-width:700px;"><h2 style="font-size:16px;font-weight:600;color:var(--text);margin-bottom:12px;">Query Traces & Lineage</h2>
+      <p style="color:var(--text-dim);margin-bottom:8px;">Events: ${data.counts?.events||0} · Tombstones: ${data.counts?.tombstones||0}</p>
+      ${data.events?.length ? data.events.slice(0,10).map(e => `<div class="card" style="padding:8px;margin-bottom:4px;font-size:12px;"><code>${e.event_type}</code> ${e.from_state||''} → ${e.to_state||''} <span style="color:var(--text-muted);">${e.job_id?.slice(0,12)||''}</span></div>`).join('') : '<p style="color:var(--text-muted);">No traces yet. Run a query to generate traces.</p>'}
+    </div>`;
+  } catch(e) { body.innerHTML += `<p style="color:var(--error);">${e.message}</p>`; }
+}
+
+function showContracts() {
+  const body = document.getElementById('main-body');
+  const contracts = ['Parser','Normalizer','Extractor','EntityResolver','GraphBuilder','CommunityBuilder','ReportGenerator','Embedder','GraphStore','VectorStore','TextIndex','GraphAlgorithm','QueryRouter','RetrievalPlanner','GraphRetriever','VectorRetriever','HybridRetriever','ContextBuilder','AuthorizationEngine','CacheManager','Reasoner','AnswerSynthesizer','TraceRecorder','WorkflowRunner','ToolProvider'];
+  body.innerHTML = `<div style="padding:0 0 12px;"><button onclick="renderGraphRAGTab()" style="display:flex;align-items:center;justify-content:center;width:24px;height:24px;background:none;border:none;color:var(--text-dim);cursor:pointer;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></button></div>
+    <div style="max-width:700px;"><h2 style="font-size:16px;font-weight:600;color:var(--text);margin-bottom:12px;">Service Contracts (${contracts.length})</h2>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px;">
+      ${contracts.map(c => `<div class="card" style="padding:6px 10px;margin:0;"><code style="font-size:11px;">${c}</code></div>`).join('')}
+    </div></div>`;
 }
 
 async function graphragQuery(mode) {
