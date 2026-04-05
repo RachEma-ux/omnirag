@@ -34,8 +34,10 @@ class HttpConnector(BaseConnector):
 
         source = source_object.source_url or source_object.external_id
         headers = config.get("headers", {})
+        if "User-Agent" not in headers:
+            headers["User-Agent"] = "Mozilla/5.0 (compatible; OmniRAG/4.0; +https://github.com/RachEma-ux/omnirag)"
         auth = config.get("auth")
-        timeout = config.get("timeout", 30)
+        timeout = config.get("timeout", 60)
         max_size = config.get("max_size_mb", 50) * 1024 * 1024
 
         if auth:
