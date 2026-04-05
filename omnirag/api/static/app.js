@@ -1080,13 +1080,13 @@ async function showIntakeJobs() {
       return;
     }
     body.innerHTML = `
+      <div style="display:flex; align-items:center; gap:10px; padding:0 0 16px; border-bottom:1px solid var(--border); margin-bottom:16px;">
+        <button onclick="renderHome()" style="display:flex; align-items:center; justify-content:center; width:32px; height:32px; background:var(--bg-raised); border:1px solid var(--border); color:var(--text); cursor:pointer; border-radius:8px;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <h2 style="font-size:18px; font-weight:600; color:var(--text);">Intake Jobs</h2>
+      </div>
       <div style="max-width:700px;">
-        <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
-          <button onclick="renderHome()" style="display:flex; align-items:center; justify-content:center; width:28px; height:28px; background:none; border:none; color:var(--text-dim); cursor:pointer; border-radius:6px; transition:background 100ms;" onmouseover="this.style.background='var(--bg-raised)'" onmouseout="this.style.background='none'">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
-          </button>
-          <h2 style="font-size:18px; font-weight:600; color:var(--text);">Intake Jobs</h2>
-        </div>
         <div class="table-wrap">
           <table>
             <thead><tr><th>Job ID</th><th>State</th><th>Source</th><th>Docs</th><th>Chunks</th></tr></thead>
@@ -1116,12 +1116,13 @@ async function viewIntakeJob(jobId) {
   try {
     const data = await fetch(`${API}/intake/${jobId}`).then(r => r.json());
     body.innerHTML = `
+      <div style="display:flex; align-items:center; gap:10px; padding:0 0 16px; border-bottom:1px solid var(--border); margin-bottom:16px;">
+        <button onclick="showIntakeJobs()" style="display:flex; align-items:center; justify-content:center; width:32px; height:32px; background:var(--bg-raised); border:1px solid var(--border); color:var(--text); cursor:pointer; border-radius:8px;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <h2 style="font-size:18px; font-weight:600; color:var(--text);">Job ${data.id}</h2>
+      </div>
       <div style="max-width:700px;">
-        <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
-          <button onclick="showIntakeJobs()" style="display:flex; align-items:center; justify-content:center; width:28px; height:28px; background:none; border:none; color:var(--text-dim); cursor:pointer; border-radius:6px; transition:background 100ms;" onmouseover="this.style.background='var(--bg-raised)'" onmouseout="this.style.background='none'">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
-          </button>
-          <h2 style="font-size:18px; font-weight:600; color:var(--text);">Job ${data.id}</h2>
         </div>
         <div class="card">
           <div class="card-title">Status: <span class="badge badge-${data.state === 'active' ? 'success' : 'info'}">${data.state}</span></div>
