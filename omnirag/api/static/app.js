@@ -1048,33 +1048,401 @@ async function loadGraphStats() {
 function renderGraphTab() {
   const body = document.getElementById('main-body');
   body.innerHTML = `
-    <div style="max-width:700px;">
-      <h2 style="font-size:18px; font-weight:600; color:var(--text); margin-bottom:16px;">Knowledge Graph</h2>
-      <div class="card">
-        <div class="card-title">Graph Explorer</div>
-        <div class="card-body">
-          <div style="display:flex; gap:8px; margin-bottom:12px;">
-            <input class="input" id="entity-search" placeholder="Search entity name..." style="flex:1;" />
-            <button class="btn btn-primary" onclick="searchEntity()">Search</button>
-          </div>
-          <div id="entity-result"></div>
-        </div>
+    <div style="display:flex; flex-direction:column; height:100%; margin:-24px -20px;">
+      <!-- Toolbar -->
+      <div style="display:flex; align-items:center; gap:8px; padding:10px 16px; border-bottom:1px solid var(--border); flex-shrink:0;">
+        <input class="input" id="entity-search" placeholder="Search entity..." style="flex:1; font-size:13px; padding:6px 10px;" />
+        <button class="btn btn-primary" onclick="searchAndFocusEntity()" style="font-size:12px; padding:5px 12px;">Search</button>
+        <button class="btn" onclick="loadGraphData()" style="font-size:12px; padding:5px 12px;">Reload</button>
+        <button class="btn" onclick="addSampleData()" style="font-size:12px; padding:5px 12px;">+ Sample</button>
       </div>
-      <div class="card">
-        <div class="card-title">Graph Store</div>
-        <div class="card-body" id="graph-store-info">Loading...</div>
+      <!-- Canvas -->
+      <div style="flex:1; position:relative; overflow:hidden; background:#0a0c0f;">
+        <canvas id="graph-canvas" style="width:100%; height:100%; cursor:grab;"></canvas>
+        <!-- Legend -->
+        <div style="position:absolute; top:10px; right:10px; background:rgba(13,13,13,0.9); border:1px solid var(--border); border-radius:8px; padding:8px 12px; font-size:10px;">
+          <div style="display:flex; align-items:center; gap:4px; margin-bottom:3px;"><div style="width:8px;height:8px;border-radius:50%;background:#6366f1;"></div> PERSON</div>
+          <div style="display:flex; align-items:center; gap:4px; margin-bottom:3px;"><div style="width:8px;height:8px;border-radius:50%;background:#4caf50;"></div> ORG</div>
+          <div style="display:flex; align-items:center; gap:4px; margin-bottom:3px;"><div style="width:8px;height:8px;border-radius:50%;background:#f59e0b;"></div> PRODUCT</div>
+          <div style="display:flex; align-items:center; gap:4px; margin-bottom:3px;"><div style="width:8px;height:8px;border-radius:50%;background:#ef4444;"></div> PROJECT</div>
+          <div style="display:flex; align-items:center; gap:4px; margin-bottom:3px;"><div style="width:8px;height:8px;border-radius:50%;background:#06b6d4;"></div> CONCEPT</div>
+          <div style="display:flex; align-items:center; gap:4px;"><div style="width:8px;height:8px;border-radius:50%;background:#888;"></div> OTHER</div>
+        </div>
+        <!-- Node detail panel -->
+        <div id="node-detail" style="display:none; position:absolute; bottom:10px; left:10px; right:10px; background:rgba(13,13,13,0.95); border:1px solid var(--border); border-radius:8px; padding:12px; font-size:12px; max-height:40%;overflow-y:auto;"></div>
+        <!-- Stats -->
+        <div id="graph-canvas-stats" style="position:absolute; bottom:10px; right:10px; font-size:10px; color:#555;"></div>
       </div>
     </div>
   `;
-  loadGraphStats();
-  document.getElementById('graph-store-info').innerHTML = document.getElementById('graphrag-stats')?.innerHTML || 'See OmniGraph tab for stats';
+  initGraphCanvas();
+  loadGraphData();
+}
+
+// ─── Knowledge Graph Visualization (Force-Directed Canvas) ───
+
+const graphViz = {
+  nodes: [], edges: [], canvas: null, ctx: null,
+  width: 0, height: 0,
+  offsetX: 0, offsetY: 0, scale: 1,
+  dragging: null, panning: false, panStart: {x:0,y:0},
+  selected: null, animFrame: null,
+};
+
+const TYPE_COLORS = {
+  PERSON: '#6366f1', ORG: '#4caf50', PRODUCT: '#f59e0b',
+  PROJECT: '#ef4444', CONCEPT: '#06b6d4', LOCATION: '#a855f7',
+  EVENT: '#ec4899', REGULATORY_TERM: '#f97316', ENTITY: '#888',
+};
+
+function initGraphCanvas() {
+  const canvas = document.getElementById('graph-canvas');
+  if (!canvas) return;
+  graphViz.canvas = canvas;
+  graphViz.ctx = canvas.getContext('2d');
+
+  const resize = () => {
+    const rect = canvas.parentElement.getBoundingClientRect();
+    canvas.width = rect.width * window.devicePixelRatio;
+    canvas.height = rect.height * window.devicePixelRatio;
+    graphViz.width = rect.width;
+    graphViz.height = rect.height;
+    graphViz.ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+    drawGraph();
+  };
+  resize();
+  window.addEventListener('resize', resize);
+
+  // Mouse/touch events
+  canvas.addEventListener('mousedown', graphMouseDown);
+  canvas.addEventListener('mousemove', graphMouseMove);
+  canvas.addEventListener('mouseup', graphMouseUp);
+  canvas.addEventListener('wheel', graphWheel);
+  canvas.addEventListener('touchstart', graphTouchStart, {passive:false});
+  canvas.addEventListener('touchmove', graphTouchMove, {passive:false});
+  canvas.addEventListener('touchend', graphTouchEnd);
+  canvas.addEventListener('dblclick', graphDblClick);
+}
+
+function toScreen(x, y) {
+  return { x: (x + graphViz.offsetX) * graphViz.scale + graphViz.width/2,
+           y: (y + graphViz.offsetY) * graphViz.scale + graphViz.height/2 };
+}
+function toWorld(sx, sy) {
+  return { x: (sx - graphViz.width/2) / graphViz.scale - graphViz.offsetX,
+           y: (sy - graphViz.height/2) / graphViz.scale - graphViz.offsetY };
+}
+
+function findNodeAt(sx, sy) {
+  const w = toWorld(sx, sy);
+  for (const n of graphViz.nodes) {
+    const dx = n.x - w.x, dy = n.y - w.y;
+    if (dx*dx + dy*dy < (n.radius||16) * (n.radius||16)) return n;
+  }
+  return null;
+}
+
+function graphMouseDown(e) {
+  const rect = graphViz.canvas.getBoundingClientRect();
+  const sx = e.clientX - rect.left, sy = e.clientY - rect.top;
+  const node = findNodeAt(sx, sy);
+  if (node) {
+    graphViz.dragging = node;
+    graphViz.canvas.style.cursor = 'grabbing';
+  } else {
+    graphViz.panning = true;
+    graphViz.panStart = {x: e.clientX, y: e.clientY};
+    graphViz.canvas.style.cursor = 'grabbing';
+  }
+}
+function graphMouseMove(e) {
+  const rect = graphViz.canvas.getBoundingClientRect();
+  if (graphViz.dragging) {
+    const w = toWorld(e.clientX - rect.left, e.clientY - rect.top);
+    graphViz.dragging.x = w.x;
+    graphViz.dragging.y = w.y;
+    graphViz.dragging.fx = w.x;
+    graphViz.dragging.fy = w.y;
+    drawGraph();
+  } else if (graphViz.panning) {
+    graphViz.offsetX += (e.clientX - graphViz.panStart.x) / graphViz.scale;
+    graphViz.offsetY += (e.clientY - graphViz.panStart.y) / graphViz.scale;
+    graphViz.panStart = {x: e.clientX, y: e.clientY};
+    drawGraph();
+  }
+}
+function graphMouseUp(e) {
+  if (graphViz.dragging) {
+    delete graphViz.dragging.fx;
+    delete graphViz.dragging.fy;
+    selectNode(graphViz.dragging);
+  }
+  graphViz.dragging = null;
+  graphViz.panning = false;
+  graphViz.canvas.style.cursor = 'grab';
+}
+function graphWheel(e) {
+  e.preventDefault();
+  const factor = e.deltaY > 0 ? 0.9 : 1.1;
+  graphViz.scale = Math.max(0.1, Math.min(5, graphViz.scale * factor));
+  drawGraph();
+}
+function graphTouchStart(e) {
+  e.preventDefault();
+  if (e.touches.length === 1) {
+    const t = e.touches[0];
+    const rect = graphViz.canvas.getBoundingClientRect();
+    const node = findNodeAt(t.clientX - rect.left, t.clientY - rect.top);
+    if (node) { graphViz.dragging = node; }
+    else { graphViz.panning = true; graphViz.panStart = {x:t.clientX, y:t.clientY}; }
+  }
+}
+function graphTouchMove(e) {
+  e.preventDefault();
+  if (e.touches.length === 1) {
+    const t = e.touches[0];
+    const rect = graphViz.canvas.getBoundingClientRect();
+    if (graphViz.dragging) {
+      const w = toWorld(t.clientX - rect.left, t.clientY - rect.top);
+      graphViz.dragging.x = w.x; graphViz.dragging.y = w.y;
+      drawGraph();
+    } else if (graphViz.panning) {
+      graphViz.offsetX += (t.clientX - graphViz.panStart.x) / graphViz.scale;
+      graphViz.offsetY += (t.clientY - graphViz.panStart.y) / graphViz.scale;
+      graphViz.panStart = {x:t.clientX, y:t.clientY};
+      drawGraph();
+    }
+  }
+}
+function graphTouchEnd() { graphViz.dragging = null; graphViz.panning = false; }
+function graphDblClick(e) {
+  const rect = graphViz.canvas.getBoundingClientRect();
+  const node = findNodeAt(e.clientX - rect.left, e.clientY - rect.top);
+  if (node) selectNode(node);
+}
+
+function selectNode(node) {
+  graphViz.selected = node;
+  const detail = document.getElementById('node-detail');
+  if (!detail) return;
+  const neighbors = graphViz.edges.filter(e => e.source === node.id || e.target === node.id);
+  detail.style.display = 'block';
+  detail.innerHTML = `
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+      <div style="display:flex; align-items:center; gap:6px;">
+        <div style="width:10px;height:10px;border-radius:50%;background:${TYPE_COLORS[node.type]||'#888'};"></div>
+        <strong style="color:var(--text);">${node.label}</strong>
+        <span class="badge badge-info" style="font-size:9px;">${node.type}</span>
+      </div>
+      <button onclick="document.getElementById('node-detail').style.display='none'" style="background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:14px;">✕</button>
+    </div>
+    ${node.aliases?.length ? `<div style="color:var(--text-dim);margin-bottom:4px;">Aliases: ${node.aliases.join(', ')}</div>` : ''}
+    <div style="color:var(--text-dim);margin-bottom:4px;">Connections: ${neighbors.length}</div>
+    ${neighbors.length ? `<div style="margin-top:6px;">` + neighbors.map(e => {
+      const other = e.source === node.id ? e.targetLabel : e.sourceLabel;
+      const dir = e.source === node.id ? '→' : '←';
+      return `<div style="padding:2px 0;color:var(--text-dim);font-size:11px;">${dir} <span style="color:var(--text);">${other}</span> <span style="color:var(--text-muted);">(${e.type}, w:${e.weight})</span></div>`;
+    }).join('') + '</div>' : ''}
+  `;
+  drawGraph();
+}
+
+function drawGraph() {
+  const {ctx, width, height, nodes, edges, scale, offsetX, offsetY, selected} = graphViz;
+  if (!ctx) return;
+  ctx.clearRect(0, 0, width, height);
+
+  // Edges
+  for (const e of edges) {
+    const src = nodes.find(n => n.id === e.source);
+    const tgt = nodes.find(n => n.id === e.target);
+    if (!src || !tgt) continue;
+    const p1 = toScreen(src.x, src.y);
+    const p2 = toScreen(tgt.x, tgt.y);
+
+    ctx.beginPath();
+    ctx.moveTo(p1.x, p1.y);
+    ctx.lineTo(p2.x, p2.y);
+    ctx.strokeStyle = (selected && (e.source === selected.id || e.target === selected.id)) ? '#6366f1' : '#2a2a2a';
+    ctx.lineWidth = Math.max(0.5, e.weight * 0.5 * scale);
+    ctx.stroke();
+
+    // Edge label
+    if (scale > 0.6) {
+      const mx = (p1.x + p2.x) / 2, my = (p1.y + p2.y) / 2;
+      ctx.fillStyle = '#444';
+      ctx.font = `${Math.max(8, 9 * scale)}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.fillText(e.type, mx, my - 3);
+    }
+  }
+
+  // Nodes
+  for (const n of nodes) {
+    const p = toScreen(n.x, n.y);
+    const r = (n.radius || 14) * scale;
+    const isSelected = selected && selected.id === n.id;
+
+    // Glow for selected
+    if (isSelected) {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, r + 4, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(99,102,241,0.2)';
+      ctx.fill();
+    }
+
+    // Circle
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+    ctx.fillStyle = TYPE_COLORS[n.type] || '#888';
+    ctx.fill();
+    if (isSelected) {
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    // Label
+    if (scale > 0.4) {
+      ctx.fillStyle = '#e8e8e8';
+      ctx.font = `${Math.max(9, 11 * scale)}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.fillText(n.label, p.x, p.y + r + 12 * scale);
+    }
+  }
+
+  // Stats
+  const stats = document.getElementById('graph-canvas-stats');
+  if (stats) stats.textContent = `${nodes.length} nodes · ${edges.length} edges · zoom ${scale.toFixed(1)}x`;
+}
+
+// Force simulation (simple spring layout)
+function runForceLayout(iterations = 100) {
+  const {nodes, edges} = graphViz;
+  if (nodes.length === 0) return;
+
+  for (let iter = 0; iter < iterations; iter++) {
+    // Repulsion (nodes push each other)
+    for (let i = 0; i < nodes.length; i++) {
+      for (let j = i + 1; j < nodes.length; j++) {
+        let dx = nodes[j].x - nodes[i].x;
+        let dy = nodes[j].y - nodes[i].y;
+        let dist = Math.sqrt(dx*dx + dy*dy) || 1;
+        let force = 800 / (dist * dist);
+        nodes[i].x -= dx / dist * force;
+        nodes[i].y -= dy / dist * force;
+        nodes[j].x += dx / dist * force;
+        nodes[j].y += dy / dist * force;
+      }
+    }
+    // Attraction (edges pull connected nodes)
+    for (const e of edges) {
+      const src = nodes.find(n => n.id === e.source);
+      const tgt = nodes.find(n => n.id === e.target);
+      if (!src || !tgt) continue;
+      let dx = tgt.x - src.x;
+      let dy = tgt.y - src.y;
+      let dist = Math.sqrt(dx*dx + dy*dy) || 1;
+      let force = (dist - 80) * 0.01;
+      src.x += dx / dist * force;
+      src.y += dy / dist * force;
+      tgt.x -= dx / dist * force;
+      tgt.y -= dy / dist * force;
+    }
+    // Center gravity
+    for (const n of nodes) {
+      n.x *= 0.99;
+      n.y *= 0.99;
+    }
+  }
+  drawGraph();
+}
+
+async function loadGraphData() {
+  try {
+    const data = await fetch(`${API}/graphrag/stats`).then(r => r.json());
+    // Load entities from analytics
+    const entities = await fetch(`${API}/v1/analytics/entities`).then(r => r.json()).catch(() => []);
+    const rels = await fetch(`${API}/v1/analytics/relationships`).then(r => r.json()).catch(() => []);
+
+    graphViz.nodes = entities.map((e, i) => ({
+      id: e.id, label: e.name, type: e.type || 'ENTITY',
+      aliases: [], connections: e.connections || 0,
+      x: (Math.random() - 0.5) * 300, y: (Math.random() - 0.5) * 300,
+      radius: Math.max(10, Math.min(22, 10 + (e.connections || 0) * 2)),
+    }));
+
+    graphViz.edges = rels.map(r => ({
+      source: r.source_id, target: r.target_id,
+      sourceLabel: r.source_name, targetLabel: r.target_name,
+      type: r.type || 'RELATED_TO', weight: r.weight || 1,
+    }));
+
+    if (graphViz.nodes.length > 0) {
+      runForceLayout(150);
+    } else {
+      drawGraph();
+    }
+  } catch(e) { console.error('loadGraphData:', e); drawGraph(); }
+}
+
+function searchAndFocusEntity() {
+  const name = document.getElementById('entity-search').value.toLowerCase();
+  if (!name) return;
+  const node = graphViz.nodes.find(n => n.label.toLowerCase().includes(name));
+  if (node) {
+    graphViz.offsetX = -node.x;
+    graphViz.offsetY = -node.y;
+    graphViz.scale = 1.5;
+    selectNode(node);
+  } else {
+    showToast('Entity not found', 'error');
+  }
+}
+
+async function addSampleData() {
+  // Add sample entities and relationships for demo
+  const samples = [
+    {id:'s1', label:'OmniRAG', type:'PROJECT', x:0, y:0, radius:20},
+    {id:'s2', label:'Neo4j', type:'PRODUCT', x:80, y:-60, radius:16},
+    {id:'s3', label:'PostgreSQL', type:'PRODUCT', x:-80, y:-60, radius:16},
+    {id:'s4', label:'Qdrant', type:'PRODUCT', x:100, y:50, radius:14},
+    {id:'s5', label:'Redis', type:'PRODUCT', x:-100, y:50, radius:14},
+    {id:'s6', label:'Ollama', type:'PRODUCT', x:0, y:100, radius:14},
+    {id:'s7', label:'OmniGraph', type:'PROJECT', x:50, y:-120, radius:18},
+    {id:'s8', label:'GraphRAG', type:'CONCEPT', x:-50, y:-120, radius:14},
+    {id:'s9', label:'LangGraph', type:'PRODUCT', x:150, y:0, radius:12},
+    {id:'s10', label:'AutoGen', type:'PRODUCT', x:-150, y:0, radius:12},
+  ];
+  const sampleEdges = [
+    {source:'s1',target:'s2',sourceLabel:'OmniRAG',targetLabel:'Neo4j',type:'USES',weight:4},
+    {source:'s1',target:'s3',sourceLabel:'OmniRAG',targetLabel:'PostgreSQL',type:'USES',weight:4},
+    {source:'s1',target:'s4',sourceLabel:'OmniRAG',targetLabel:'Qdrant',type:'USES',weight:3},
+    {source:'s1',target:'s5',sourceLabel:'OmniRAG',targetLabel:'Redis',type:'USES',weight:3},
+    {source:'s1',target:'s6',sourceLabel:'OmniRAG',targetLabel:'Ollama',type:'INTEGRATES_WITH',weight:3},
+    {source:'s7',target:'s2',sourceLabel:'OmniGraph',targetLabel:'Neo4j',type:'DEPENDS_ON',weight:5},
+    {source:'s7',target:'s1',sourceLabel:'OmniGraph',targetLabel:'OmniRAG',type:'PART_OF',weight:5},
+    {source:'s8',target:'s7',sourceLabel:'GraphRAG',targetLabel:'OmniGraph',type:'INSPIRES',weight:3},
+    {source:'s1',target:'s9',sourceLabel:'OmniRAG',targetLabel:'LangGraph',type:'INTEGRATES_WITH',weight:2},
+    {source:'s1',target:'s10',sourceLabel:'OmniRAG',targetLabel:'AutoGen',type:'INTEGRATES_WITH',weight:2},
+    {source:'s7',target:'s8',sourceLabel:'OmniGraph',targetLabel:'GraphRAG',type:'RELATED_TO',weight:2},
+  ];
+
+  // Merge with existing
+  for (const s of samples) {
+    if (!graphViz.nodes.find(n => n.id === s.id)) graphViz.nodes.push(s);
+  }
+  for (const e of sampleEdges) {
+    if (!graphViz.edges.find(x => x.source === e.source && x.target === e.target)) graphViz.edges.push(e);
+  }
+  runForceLayout(200);
+  showToast(`${samples.length} nodes + ${sampleEdges.length} edges added`);
 }
 
 async function searchEntity() {
-  const name = document.getElementById('entity-search').value;
+  const name = document.getElementById('entity-search')?.value;
   if (!name) return;
-  const result = document.getElementById('entity-result');
-  result.innerHTML = '<div class="spinner"></div>';
+  searchAndFocusEntity();
   try {
     // Use local search as entity lookup
     const r = await fetch(`${API}/graphrag/query/local`, {
