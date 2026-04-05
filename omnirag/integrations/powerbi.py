@@ -37,6 +37,7 @@ class AnalyticsExporter:
                 "connections": connections,
                 "chunks": len(e.chunk_ids),
                 "acl_principals": len(e.acl_principals),
+                "community": e.metadata.get("community", ""),
             })
         return rows
 

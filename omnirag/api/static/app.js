@@ -1456,6 +1456,7 @@ async function loadGraphData() {
     graphViz.nodes = entities.map((e, i) => ({
       id: e.id, label: e.name, type: e.type || 'ENTITY',
       aliases: [], connections: e.connections || 0,
+      community: e.community || '',
       x: (Math.random() - 0.5) * 300, y: (Math.random() - 0.5) * 300,
       radius: Math.max(10, Math.min(22, 10 + (e.connections || 0) * 2)),
     }));

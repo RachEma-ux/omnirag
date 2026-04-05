@@ -92,6 +92,11 @@ class GraphProjectionService:
         for community in communities:
             propagate_acl(community, entity_acl_map)
             await store.upsert_community(community)
+            # Tag each entity with its community ID
+            for eid in community.entity_ids:
+                entity = store._entities.get(eid)
+                if entity:
+                    entity.metadata["community"] = community.community_id
 
         # 7. Generate community reports
         for community in communities:
