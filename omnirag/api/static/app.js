@@ -789,7 +789,7 @@ function renderSettings(body) {
   `;
 }
 
-// ─── Main Tabs (RAG / GraphRAG / Graph / Chat) ───
+// ─── Main Tabs (RAG / OmniGraph / Graph / Chat) ───
 
 function switchMainTab(tab) {
   activeMainTab = tab;
@@ -822,7 +822,7 @@ function renderGraphRAGTab() {
   const body = document.getElementById('main-body');
   body.innerHTML = `
     <div style="max-width:700px;">
-      <h2 style="font-size:18px; font-weight:600; color:var(--text); margin-bottom:16px;">GraphRAG</h2>
+      <h2 style="font-size:18px; font-weight:600; color:var(--text); margin-bottom:16px;">OmniGraph</h2>
       <div class="card">
         <div class="card-title">Query Modes</div>
         <div class="card-body">
@@ -913,7 +913,7 @@ function renderGraphTab() {
     </div>
   `;
   loadGraphStats();
-  document.getElementById('graph-store-info').innerHTML = document.getElementById('graphrag-stats')?.innerHTML || 'See GraphRAG tab for stats';
+  document.getElementById('graph-store-info').innerHTML = document.getElementById('graphrag-stats')?.innerHTML || 'See OmniGraph tab for stats';
 }
 
 async function searchEntity() {
@@ -946,7 +946,7 @@ function renderChatWelcome() {
     <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; gap:16px; padding:40px 20px; text-align:center;">
       <div style="font-size:24px; font-weight:700; color:var(--text); opacity:0.12;">OmniRAG Chat</div>
       <p style="color:var(--text-dim); font-size:14px; max-width:400px;">
-        Ask questions about your ingested documents. Uses hybrid RAG + GraphRAG for answers with citations.
+        Ask questions about your ingested documents. Uses hybrid RAG + OmniGraph for answers with citations.
       </p>
     </div>
   `;
