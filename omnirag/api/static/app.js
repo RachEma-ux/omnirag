@@ -1066,13 +1066,18 @@ function renderGraphTab() {
         </select>
         <button class="btn" id="path-btn" onclick="togglePathMode()" style="font-size:11px; padding:4px 10px;">🔗 Path</button>
         <button class="btn" onclick="exportGraphPNG()" style="font-size:11px; padding:4px 10px;">📷</button>
+        <button class="btn" id="filter-toggle-btn" onclick="toggleFilterPanel()" style="font-size:11px; padding:4px 10px;">☰ Filter</button>
         <span id="collab-indicator" style="font-size:11px; color:var(--text-muted);"></span>
       </div>
       <!-- Body: Filter Panel + Canvas -->
       <div style="flex:1; display:flex; overflow:hidden;">
         <!-- Filter Panel (V2) -->
-        <div id="filter-panel" style="width:160px; flex-shrink:0; background:var(--bg-base); border-right:1px solid var(--border); padding:8px; overflow-y:auto; font-size:11px; scrollbar-width:none;">
-          <div style="font-weight:600; color:var(--text); margin-bottom:6px;">Filters</div>
+        <div id="filter-panel" style="width:0; flex-shrink:0; background:var(--bg-base); border-right:1px solid var(--border); overflow:hidden; font-size:11px; transition:width 200ms ease-out;">
+          <div style="width:160px; padding:8px; overflow-y:auto; scrollbar-width:none; height:100%;">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+            <span style="font-weight:600; color:var(--text);">Filters</span>
+            <button onclick="toggleFilterPanel()" style="background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:12px;">✕</button>
+          </div>
           <div style="margin-bottom:8px;">
             <div style="color:var(--text-dim); margin-bottom:4px;">Entity Types</div>
             <div id="filter-types"></div>
@@ -1094,6 +1099,7 @@ function renderGraphTab() {
           </div>
           <div style="color:var(--text-muted); margin-bottom:6px;" id="filter-count"></div>
           <button class="btn" onclick="resetFilters()" style="font-size:10px; padding:3px 8px; width:100%;">Reset</button>
+          </div>
         </div>
         <!-- Canvas -->
         <div style="flex:1; position:relative; overflow:hidden; background:#0a0c0f;">
@@ -1525,6 +1531,15 @@ async function addSampleData() {
 
 async function searchEntity() {
   searchAndFocusEntity();
+}
+
+// ─── Filter Panel Toggle ───
+
+function toggleFilterPanel() {
+  const panel = document.getElementById('filter-panel');
+  if (!panel) return;
+  const open = panel.style.width !== '0px';
+  panel.style.width = open ? '0px' : '160px';
 }
 
 // ─── V1: Layout Algorithms ───
