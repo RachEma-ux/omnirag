@@ -1055,6 +1055,7 @@ function renderGraphTab() {
         <button class="btn btn-primary" onclick="searchAndFocusEntity()" style="font-size:11px; padding:4px 10px;">Search</button>
         <button class="btn" onclick="loadGraphData()" style="font-size:11px; padding:4px 10px;">Reload</button>
         <button class="btn btn-primary" onclick="loadDemo()" style="font-size:11px; padding:4px 10px;">Demo</button>
+        <button class="btn" id="filter-toggle-btn" onclick="toggleFilterPanel()" style="font-size:11px; padding:4px 10px;">☰ Filter</button>
         <select id="layout-select" onchange="switchLayout(this.value)" class="input" style="width:auto; font-size:11px; padding:4px 6px;">
           <option value="force">Force</option>
           <option value="hierarchy">Hierarchy</option>
@@ -1065,7 +1066,6 @@ function renderGraphTab() {
           <option value="community">Color: Community</option>
         </select>
         <button class="btn" id="path-btn" onclick="togglePathMode()" style="font-size:11px; padding:4px 10px;">🔗 Path</button>
-        <button class="btn" id="filter-toggle-btn" onclick="toggleFilterPanel()" style="font-size:11px; padding:4px 10px;">☰ Filter</button>
         <span id="collab-indicator" style="font-size:11px; color:var(--text-muted);"></span>
       </div>
       <!-- Body: Filter Panel + Canvas -->
