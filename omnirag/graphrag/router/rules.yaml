@@ -71,6 +71,9 @@ basic_patterns:
   - name: simple_who
     pattern: "^(who|what|where|when)\\s+\\w+\\s*\\?$"
     confidence: 0.75
+  - name: lookup
+    pattern: "(tell me|show me|give me|find)\\s+(the|a)\\s+(value|number|date|name|count)"
+    confidence: 0.8
 
 hybrid_patterns:
   - name: compare
