@@ -282,6 +282,29 @@ function renderHome() {
         ${healthData ? `v${healthData.version}` : 'Check status'}
       </button>
 
+      <div class="home-section">
+        <div class="home-section-header">
+          <div class="home-section-title">Intake Gate</div>
+        </div>
+        <div class="card" style="margin:0 0 8px;">
+          <div style="display:flex; gap:8px; align-items:flex-end;">
+            <div style="flex:1;">
+              <label style="font-size:11px; color:var(--text-dim); display:block; margin-bottom:4px;">Source URI</label>
+              <input class="input" id="intake-source" placeholder="/path/to/docs/*.pdf  or  https://...  or  s3://...  or  github://..." />
+            </div>
+            <button class="btn btn-primary" onclick="runIntake()" style="white-space:nowrap;">Ingest</button>
+          </div>
+          <div id="intake-result" style="margin-top:8px;"></div>
+        </div>
+        <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:4px;">
+          <button class="btn" onclick="document.getElementById('intake-source').value='/path/to/file.pdf'" style="font-size:11px; padding:3px 8px;">Local file</button>
+          <button class="btn" onclick="document.getElementById('intake-source').value='https://example.com/doc.pdf'" style="font-size:11px; padding:3px 8px;">URL</button>
+          <button class="btn" onclick="document.getElementById('intake-source').value='s3://bucket/prefix/'" style="font-size:11px; padding:3px 8px;">S3</button>
+          <button class="btn" onclick="document.getElementById('intake-source').value='github://owner/repo/docs'" style="font-size:11px; padding:3px 8px;">GitHub</button>
+          <button class="btn" onclick="showIntakeJobs()" style="font-size:11px; padding:3px 8px;">View Jobs</button>
+        </div>
+      </div>
+
       ${pipelines.length > 0 ? `
         <div class="home-section">
           <div class="home-section-header">
@@ -1009,6 +1032,132 @@ async function chatSend() {
     const thinking = document.getElementById(thinkingId);
     if (thinking) thinking.remove();
     chatAddMessage('assistant', `<span style="color:var(--error);">Error: ${e.message}</span>`);
+  }
+}
+
+// ─── Intake Gate UI ───
+
+async function runIntake() {
+  const source = document.getElementById('intake-source').value.trim();
+  if (!source) { showToast('Source URI required', 'error'); return; }
+  const result = document.getElementById('intake-result');
+  result.innerHTML = '<div style="display:flex;align-items:center;gap:8px;"><div class="spinner"></div> Ingesting...</div>';
+  try {
+    const r = await fetch(`${API}/intake`, {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ source, config: {} }),
+    });
+    const data = await r.json();
+    const stateColor = data.state === 'active' ? 'var(--success)' : data.state === 'failed' ? 'var(--error)' : 'var(--accent)';
+    result.innerHTML = `
+      <div class="card" style="margin:8px 0 0; padding:12px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+          <span style="font-size:13px; font-weight:500; color:var(--text);">Job ${data.id}</span>
+          <span class="badge" style="background:${stateColor}20; color:${stateColor};">${data.state}</span>
+        </div>
+        <div style="font-size:12px; color:var(--text-dim); display:flex; gap:16px; flex-wrap:wrap;">
+          <span>Files: ${data.files_found || 0}</span>
+          <span>Loaded: ${data.files_loaded || 0}</span>
+          <span>Docs: ${data.documents_created || 0}</span>
+          <span>Chunks: ${data.chunks_created || 0}</span>
+        </div>
+        ${data.errors?.length ? `<div style="font-size:11px; color:var(--error); margin-top:6px;">${data.errors.slice(0,3).join('<br>')}</div>` : ''}
+      </div>
+    `;
+    if (data.state === 'active') showToast(`Ingested: ${data.documents_created} docs, ${data.chunks_created} chunks`);
+  } catch(e) {
+    result.innerHTML = `<div style="color:var(--error); font-size:13px; margin-top:4px;">${e.message}</div>`;
+  }
+}
+
+async function showIntakeJobs() {
+  const body = document.getElementById('main-body');
+  body.innerHTML = '<div style="display:flex;align-items:center;gap:8px;"><div class="spinner"></div> Loading jobs...</div>';
+  try {
+    const jobs = await fetch(`${API}/intake`).then(r => r.json());
+    if (!jobs.length) {
+      body.innerHTML = '<div class="empty-state"><p>No intake jobs yet. Ingest a source to get started.</p></div>';
+      return;
+    }
+    body.innerHTML = `
+      <div style="max-width:700px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
+          <h2 style="font-size:18px; font-weight:600; color:var(--text);">Intake Jobs</h2>
+          <button class="btn" onclick="renderHome()">Back</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Job ID</th><th>State</th><th>Source</th><th>Docs</th><th>Chunks</th></tr></thead>
+            <tbody>
+              ${jobs.map(j => `
+                <tr onclick="viewIntakeJob('${j.id}')" style="cursor:pointer;">
+                  <td><code>${j.id}</code></td>
+                  <td><span class="badge badge-${j.state === 'active' ? 'success' : j.state === 'failed' ? 'error' : 'info'}">${j.state}</span></td>
+                  <td style="max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${j.source || '—'}</td>
+                  <td>${j.documents_created || 0}</td>
+                  <td>${j.chunks_created || 0}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  } catch(e) {
+    body.innerHTML = `<div class="card"><div class="card-title" style="color:var(--error)">Error</div><div class="card-body"><code>${e.message}</code></div></div>`;
+  }
+}
+
+async function viewIntakeJob(jobId) {
+  const body = document.getElementById('main-body');
+  body.innerHTML = '<div style="display:flex;align-items:center;gap:8px;"><div class="spinner"></div> Loading...</div>';
+  try {
+    const data = await fetch(`${API}/intake/${jobId}`).then(r => r.json());
+    body.innerHTML = `
+      <div style="max-width:700px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
+          <h2 style="font-size:18px; font-weight:600; color:var(--text);">Job ${data.id}</h2>
+          <button class="btn" onclick="showIntakeJobs()">Back</button>
+        </div>
+        <div class="card">
+          <div class="card-title">Status: <span class="badge badge-${data.state === 'active' ? 'success' : 'info'}">${data.state}</span></div>
+          <div class="card-body">
+            <p>Source: <code>${data.source || '—'}</code></p>
+            <p>Files found: ${data.files_found} · Loaded: ${data.files_loaded} · Docs: ${data.documents_created} · Chunks: ${data.chunks_created}</p>
+            ${data.errors?.length ? `<p style="color:var(--error);">Errors: ${data.errors.join(', ')}</p>` : ''}
+          </div>
+        </div>
+        ${data.documents?.length ? `
+          <div class="card">
+            <div class="card-title">Documents (${data.documents.length})</div>
+            <div class="card-body">
+              ${data.documents.map(d => `
+                <div style="padding:6px 0; border-bottom:1px solid var(--border-weak);">
+                  <span class="badge badge-info">${d.semantic_type}</span>
+                  <span style="margin-left:8px; color:var(--text);">${d.title || d.source_object_ref?.slice(0,12) || '—'}</span>
+                  <span style="color:var(--text-muted); font-size:11px; margin-left:8px;">${d.body_length || 0} chars</span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        ` : ''}
+        ${data.chunks_sample?.length ? `
+          <div class="card">
+            <div class="card-title">Chunks (showing ${data.chunks_sample.length} of ${data.chunks_total})</div>
+            <div class="card-body">
+              ${data.chunks_sample.map(c => `
+                <div style="padding:6px 0; border-bottom:1px solid var(--border-weak); font-size:12px;">
+                  <code style="font-size:10px;">${c.chunk_type || 'chunk'}</code>
+                  <span style="color:var(--text-dim); margin-left:6px;">${c.text_preview}</span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        ` : ''}
+      </div>
+    `;
+  } catch(e) {
+    body.innerHTML = `<div class="card"><div class="card-title" style="color:var(--error)">Error</div><div class="card-body"><code>${e.message}</code></div></div>`;
   }
 }
 
