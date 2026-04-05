@@ -8,6 +8,8 @@ let hoverPipeline = null;
 let peekTimeout = null;
 let currentPage = 'home';
 let pipelines = [];
+let activeMainTab = 'rag';
+let chatMessages = [];
 let healthData = null;
 
 // ─── Colors for pipeline avatars ───
@@ -770,7 +772,247 @@ function renderSettings(body) {
   `;
 }
 
-// ─── Init ──���
+// ─── Main Tabs (RAG / GraphRAG / Graph / Chat) ───
+
+function switchMainTab(tab) {
+  activeMainTab = tab;
+  // Update tab buttons
+  document.querySelectorAll('.main-tab').forEach(el => {
+    el.classList.toggle('active', el.dataset.tab === tab);
+  });
+  // Show/hide content areas
+  const mainBody = document.getElementById('main-body');
+  const chatBody = document.getElementById('chat-body');
+  if (tab === 'chat') {
+    mainBody.style.display = 'none';
+    chatBody.style.display = 'flex';
+    if (chatMessages.length === 0) renderChatWelcome();
+  } else {
+    mainBody.style.display = '';
+    chatBody.style.display = 'none';
+    if (tab === 'rag') renderCurrentPage();
+    else if (tab === 'graphrag') renderGraphRAGTab();
+    else if (tab === 'graph') renderGraphTab();
+  }
+}
+
+function renderCurrentPage() {
+  if (currentPage === 'home') renderHome();
+  else if (activePipeline) renderPipelineMain(activePipeline);
+}
+
+function renderGraphRAGTab() {
+  const body = document.getElementById('main-body');
+  body.innerHTML = `
+    <div style="max-width:700px;">
+      <h2 style="font-size:18px; font-weight:600; color:var(--text); margin-bottom:16px;">GraphRAG</h2>
+      <div class="card">
+        <div class="card-title">Query Modes</div>
+        <div class="card-body">
+          <div style="display:flex; flex-direction:column; gap:12px;">
+            <div style="display:flex; gap:8px;">
+              <input class="input" id="graphrag-query" placeholder="Ask a question..." style="flex:1;" />
+            </div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <button class="btn btn-primary" onclick="graphragQuery('local')">Local Search</button>
+              <button class="btn" onclick="graphragQuery('global')">Global Search</button>
+              <button class="btn" onclick="graphragQuery('drift')">DRIFT Search</button>
+              <button class="btn" onclick="graphragQuery('route')">Auto Route</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div id="graphrag-result"></div>
+      <div class="card" style="margin-top:16px;">
+        <div class="card-title">Graph Stats</div>
+        <div class="card-body" id="graphrag-stats">Loading...</div>
+      </div>
+    </div>
+  `;
+  loadGraphStats();
+}
+
+async function graphragQuery(mode) {
+  const query = document.getElementById('graphrag-query').value;
+  if (!query) { showToast('Query required', 'error'); return; }
+  const result = document.getElementById('graphrag-result');
+  result.innerHTML = '<div style="display:flex;align-items:center;gap:8px;margin-top:12px;"><div class="spinner"></div> Querying...</div>';
+  try {
+    const r = await fetch(\`\${API}/graphrag/query/\${mode}\`, {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ query, user_principal: 'public' }),
+    });
+    const data = await r.json();
+    result.innerHTML = \`
+      <div class="card" style="margin-top:12px;">
+        <div class="card-title">Result <span class="badge badge-info">\${data.mode || mode}</span></div>
+        <div class="card-body">
+          <p style="color:var(--text); margin-bottom:8px;">\${data.answer || 'No answer'}</p>
+          \${data.citations?.length ? '<p style="color:var(--text-dim); font-size:12px;">Citations: ' + data.citations.map(c => '<code>' + c.chunk_id?.slice(0,8) + '</code>').join(', ') + '</p>' : ''}
+          <p style="color:var(--text-muted); font-size:11px; margin-top:8px;">
+            Mode: \${data.mode || mode} · Latency: \${data.latency_ms || '—'}ms · Cache: \${data.cache_hit ? 'HIT' : 'MISS'}
+          </p>
+        </div>
+      </div>
+    \`;
+  } catch(e) { result.innerHTML = \`<div class="card" style="margin-top:12px;"><div class="card-title" style="color:var(--error)">Error</div><div class="card-body"><code>\${e.message}</code></div></div>\`; }
+}
+
+async function loadGraphStats() {
+  try {
+    const data = await fetch(\`\${API}/graphrag/stats\`).then(r => r.json());
+    document.getElementById('graphrag-stats').innerHTML = \`
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(120px,1fr)); gap:8px;">
+        <div><strong style="color:var(--text)">\${data.graph?.entities || 0}</strong><br><span style="font-size:11px; color:var(--text-dim)">Entities</span></div>
+        <div><strong style="color:var(--text)">\${data.graph?.relationships || 0}</strong><br><span style="font-size:11px; color:var(--text-dim)">Relationships</span></div>
+        <div><strong style="color:var(--text)">\${data.graph?.communities || 0}</strong><br><span style="font-size:11px; color:var(--text-dim)">Communities</span></div>
+        <div><strong style="color:var(--text)">\${data.graph?.reports || 0}</strong><br><span style="font-size:11px; color:var(--text-dim)">Reports</span></div>
+        <div><strong style="color:var(--text)">\${data.cache?.hits || 0}</strong><br><span style="font-size:11px; color:var(--text-dim)">Cache Hits</span></div>
+        <div><strong style="color:var(--text)">\${data.stale_communities || 0}</strong><br><span style="font-size:11px; color:var(--text-dim)">Stale</span></div>
+      </div>
+    \`;
+  } catch { document.getElementById('graphrag-stats').textContent = 'Failed to load stats'; }
+}
+
+function renderGraphTab() {
+  const body = document.getElementById('main-body');
+  body.innerHTML = \`
+    <div style="max-width:700px;">
+      <h2 style="font-size:18px; font-weight:600; color:var(--text); margin-bottom:16px;">Knowledge Graph</h2>
+      <div class="card">
+        <div class="card-title">Graph Explorer</div>
+        <div class="card-body">
+          <div style="display:flex; gap:8px; margin-bottom:12px;">
+            <input class="input" id="entity-search" placeholder="Search entity name..." style="flex:1;" />
+            <button class="btn btn-primary" onclick="searchEntity()">Search</button>
+          </div>
+          <div id="entity-result"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Graph Store</div>
+        <div class="card-body" id="graph-store-info">Loading...</div>
+      </div>
+    </div>
+  \`;
+  loadGraphStats();
+  document.getElementById('graph-store-info').innerHTML = document.getElementById('graphrag-stats')?.innerHTML || 'See GraphRAG tab for stats';
+}
+
+async function searchEntity() {
+  const name = document.getElementById('entity-search').value;
+  if (!name) return;
+  const result = document.getElementById('entity-result');
+  result.innerHTML = '<div class="spinner"></div>';
+  try {
+    // Use local search as entity lookup
+    const r = await fetch(\`\${API}/graphrag/query/local\`, {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ query: 'details about ' + name, user_principal: 'public' }),
+    });
+    const data = await r.json();
+    const entities = data.evidence?.entities_count || 0;
+    result.innerHTML = \`
+      <div style="margin-top:8px;">
+        <p style="color:var(--text);">Found \${entities} related entities</p>
+        \${data.answer ? '<p style="color:var(--text-dim); margin-top:8px;">' + data.answer + '</p>' : ''}
+      </div>
+    \`;
+  } catch(e) { result.innerHTML = '<p style="color:var(--error);">' + e.message + '</p>'; }
+}
+
+// ─── Chat Tab (OpenCode Chat template) ───
+
+function renderChatWelcome() {
+  const el = document.getElementById('chat-messages');
+  el.innerHTML = \`
+    <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; gap:16px; padding:40px 20px; text-align:center;">
+      <div style="font-size:24px; font-weight:700; color:var(--text); opacity:0.12;">OmniRAG Chat</div>
+      <p style="color:var(--text-dim); font-size:14px; max-width:400px;">
+        Ask questions about your ingested documents. Uses hybrid RAG + GraphRAG for answers with citations.
+      </p>
+    </div>
+  \`;
+}
+
+function chatAddMessage(role, content) {
+  chatMessages.push({ role, content, time: Date.now() });
+  renderChatMessages();
+}
+
+function renderChatMessages() {
+  const el = document.getElementById('chat-messages');
+  el.innerHTML = chatMessages.map(msg => {
+    if (msg.role === 'user') {
+      return \`<div class="chat-msg-user"><div class="chat-msg-user-body"><div class="chat-msg-user-text">\${escapeHtml(msg.content)}</div></div></div>\`;
+    }
+    return \`<div class="chat-msg-assistant"><div class="chat-msg-assistant-text">\${msg.content}</div></div>\`;
+  }).join('');
+  el.scrollTop = el.scrollHeight;
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+function chatHandleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    chatSend();
+  }
+}
+
+async function chatSend() {
+  const input = document.getElementById('chat-input');
+  const query = input.value.trim();
+  if (!query) return;
+  input.value = '';
+  input.style.height = 'auto';
+
+  // Add user message
+  chatAddMessage('user', query);
+
+  // Add thinking indicator
+  const el = document.getElementById('chat-messages');
+  const thinkingId = 'thinking-' + Date.now();
+  el.innerHTML += \`<div class="chat-msg-assistant" id="\${thinkingId}"><div class="chat-thinking"><div class="spinner"></div> Searching & generating...</div></div>\`;
+  el.scrollTop = el.scrollHeight;
+
+  try {
+    // Try hybrid search first
+    const r = await fetch(\`\${API}/v1/search\`, {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ query, top_k: 5 }),
+    });
+    const data = await r.json();
+
+    // Remove thinking indicator
+    const thinking = document.getElementById(thinkingId);
+    if (thinking) thinking.remove();
+
+    // Build assistant response
+    let response = data.answer || 'No answer found.';
+    if (data.citations?.length) {
+      response += '<br><br><strong>Citations:</strong><br>';
+      response += data.citations.map(c =>
+        \`<code>\${c.doc_id?.slice(0,8)}:\${c.chunk_id?.slice(0,8)}</code> \${c.snippet || ''}\`
+      ).join('<br>');
+    }
+    if (data.metadata) {
+      response += \`<br><br><span style="font-size:11px; color:var(--text-muted);">Mode: \${data.metadata.mode} · Retrieval: \${data.metadata.retrieval_latency_ms}ms · Generation: \${data.metadata.generation_latency_ms}ms</span>\`;
+    }
+
+    chatAddMessage('assistant', response);
+  } catch(e) {
+    const thinking = document.getElementById(thinkingId);
+    if (thinking) thinking.remove();
+    chatAddMessage('assistant', \`<span style="color:var(--error);">Error: \${e.message}</span>\`);
+  }
+}
+
+// ─── Init ───
 checkHealth();
 setInterval(checkHealth, 15000);
 loadPipelines();

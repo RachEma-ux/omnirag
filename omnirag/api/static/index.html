@@ -67,7 +67,41 @@
 
     <!-- Main Content -->
     <main class="main-content" id="main-content">
+      <!-- Tab Bar -->
+      <div class="main-tabs" id="main-tabs">
+        <button class="main-tab active" data-tab="rag" onclick="switchMainTab('rag')">RAG</button>
+        <button class="main-tab" data-tab="graphrag" onclick="switchMainTab('graphrag')">GraphRAG</button>
+        <button class="main-tab" data-tab="graph" onclick="switchMainTab('graph')">Graph</button>
+        <button class="main-tab" data-tab="chat" onclick="switchMainTab('chat')">Chat</button>
+      </div>
+      <!-- Tab content: RAG (default) -->
       <div class="main-body" id="main-body"></div>
+      <!-- Tab content: Chat (OpenCode template) -->
+      <div class="chat-body" id="chat-body" style="display:none">
+        <div class="chat-messages" id="chat-messages"></div>
+        <div class="chat-composer">
+          <div class="chat-composer-box">
+            <textarea class="chat-input" id="chat-input" placeholder="Ask anything..." rows="1"
+              oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"
+              onkeydown="chatHandleKey(event)"></textarea>
+            <div class="chat-composer-actions">
+              <div class="chat-attach">+</div>
+              <div class="chat-send" onclick="chatSend()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5">
+                  <line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/>
+                </svg>
+              </div>
+            </div>
+          </div>
+          <div class="chat-toolbar">
+            <span class="chat-tool-item">RAG <span class="chat-caret">▾</span></span>
+            <span class="chat-tool-sep">|</span>
+            <span class="chat-tool-item">GraphRAG <span class="chat-caret">▾</span></span>
+            <span class="chat-tool-sep">|</span>
+            <span class="chat-tool-item">Hybrid <span class="chat-caret">▾</span></span>
+          </div>
+        </div>
+      </div>
     </main>
   </div>
 

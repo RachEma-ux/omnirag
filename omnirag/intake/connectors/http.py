@@ -1,12 +1,13 @@
-"""HTTP/HTTPS connector — fetches from URLs, APIs, RSS, sitemaps."""
+"""HTTP/HTTPS connector — upgraded to 7-method interface."""
 
 from __future__ import annotations
 
+import hashlib
 import urllib.parse
 from typing import AsyncIterator
 
 from omnirag.intake.connectors.base import BaseConnector
-from omnirag.intake.models import RawContent
+from omnirag.intake.models import ObjectKind, RawContent, SourceObject
 
 
 class HttpConnector(BaseConnector):
@@ -17,9 +18,21 @@ class HttpConnector(BaseConnector):
     def supports(self, source: str) -> bool:
         return source.startswith("http://") or source.startswith("https://")
 
-    async def fetch(self, source: str, config: dict) -> AsyncIterator[RawContent]:
+    async def discover(self, source: str, config: dict, cursor: str | None = None) -> list[SourceObject]:
+        parsed = urllib.parse.urlparse(source)
+        filename = parsed.path.rsplit("/", 1)[-1] or "index.html"
+        return [SourceObject(
+            connector_id=self.name,
+            external_id=source,
+            object_kind=ObjectKind.BLOB,
+            source_url=source,
+            metadata={"filename": filename, "url": source},
+        )]
+
+    async def fetch(self, source_object: SourceObject, config: dict) -> RawContent | None:
         import httpx
 
+        source = source_object.source_url or source_object.external_id
         headers = config.get("headers", {})
         auth = config.get("auth")
         timeout = config.get("timeout", 30)
@@ -42,20 +55,19 @@ class HttpConnector(BaseConnector):
 
             data = response.content
             if len(data) > max_size:
-                return
+                return None
 
             content_type = response.headers.get("content-type", "")
             parsed = urllib.parse.urlparse(source)
             filename = parsed.path.rsplit("/", 1)[-1] or "index.html"
 
-            yield RawContent(
+            source_object.checksum = hashlib.sha256(data).hexdigest()
+            source_object.mime_type = content_type.split(";")[0].strip()
+
+            return RawContent(
                 data=data,
                 source_uri=source,
                 filename=filename,
                 mime_type=content_type.split(";")[0].strip(),
-                metadata={
-                    "url": source,
-                    "status_code": response.status_code,
-                    "content_type": content_type,
-                },
+                metadata={"url": source, "status_code": response.status_code, "content_type": content_type},
             )
