@@ -1,0 +1,27 @@
+# Default extraction schema — general purpose
+name: default
+description: General-purpose entity and relationship extraction
+
+entity_types:
+  - PERSON
+  - ORG
+  - PRODUCT
+  - PROJECT
+  - LOCATION
+  - EVENT
+  - CONCEPT
+  - REGULATORY_TERM
+
+relationship_types:
+  - USES
+  - DEPENDS_ON
+  - INTEGRATES_WITH
+  - SUPPORTS
+  - CONTRADICTS
+  - REGULATES
+  - REPORTS_TO
+  - PRODUCES
+  - CONSUMES
+  - RELATED_TO
+
+constraints: "No additional constraints. Extract all entities and relationships found."

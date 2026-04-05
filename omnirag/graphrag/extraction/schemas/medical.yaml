@@ -1,0 +1,29 @@
+# Medical domain extraction schema
+name: medical
+description: Conditions, treatments, medications, clinical data
+
+entity_types:
+  - CONDITION
+  - TREATMENT
+  - MEDICATION
+  - PROCEDURE
+  - ANATOMY
+  - SYMPTOM
+  - ORGANISM
+  - CLINICAL_TRIAL
+  - DOSAGE
+  - BIOMARKER
+
+relationship_types:
+  - TREATS
+  - CAUSES
+  - INDICATES
+  - CONTRAINDICATED_WITH
+  - ADMINISTERED_VIA
+  - TARGETS
+  - MEASURED_BY
+  - DIAGNOSED_BY
+  - SIDE_EFFECT_OF
+  - STUDIED_IN
+
+constraints: "Use standard medical terminology. Map to ICD-10 or SNOMED CT codes where possible. Flag uncertain diagnoses."

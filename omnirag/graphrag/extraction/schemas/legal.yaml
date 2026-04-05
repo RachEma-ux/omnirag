@@ -1,0 +1,28 @@
+# Legal domain extraction schema
+name: legal
+description: Contracts, clauses, parties, obligations
+
+entity_types:
+  - PARTY
+  - CONTRACT
+  - CLAUSE
+  - OBLIGATION
+  - RIGHT
+  - JURISDICTION
+  - REGULATORY_BODY
+  - PENALTY
+  - DATE_REFERENCE
+
+relationship_types:
+  - PARTY_TO
+  - CONTAINS_CLAUSE
+  - OBLIGATED_TO
+  - GRANTS_RIGHT
+  - GOVERNED_BY
+  - ENFORCED_BY
+  - PENALIZES
+  - EFFECTIVE_FROM
+  - EXPIRES_ON
+  - AMENDS
+
+constraints: "Only extract entities directly relevant to legal agreements. Ignore general business terminology unless it constitutes a defined term in the contract."

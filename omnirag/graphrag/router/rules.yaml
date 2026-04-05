@@ -1,0 +1,84 @@
+# OmniGraph Query Router — 25 routing rules
+# Stage 1: deterministic pattern matching (<1ms)
+
+global_patterns:
+  - name: corpus_summary
+    pattern: "(what are the|summarize|list all)\\s+(themes|topics|risks|trends|findings)"
+    confidence: 0.95
+  - name: overview
+    pattern: "overview of\\s+(entire|whole|all|the)\\s+(corpus|dataset|documents|collection)"
+    confidence: 0.95
+  - name: high_level
+    pattern: "high.?level\\s+summary"
+    confidence: 0.9
+  - name: broad_scope
+    pattern: "(across all|corpus.?wide|overall|broad|comprehensive)\\s+"
+    confidence: 0.85
+  - name: main_themes
+    pattern: "(main|key|primary|major)\\s+(themes|topics|categories|patterns)"
+    confidence: 0.9
+
+local_patterns:
+  - name: entity_relation
+    pattern: "how\\s+(is|are)\\s+(\\w+)\\s+related\\s+to\\s+(\\w+)"
+    confidence: 0.95
+  - name: entity_details
+    pattern: "(details?|specifics?|information)\\s+(about|on|of|for)\\s+"
+    confidence: 0.9
+  - name: entity_says
+    pattern: "what\\s+does\\s+(\\w+)\\s+say\\s+about"
+    confidence: 0.9
+  - name: entity_role
+    pattern: "what\\s+(role|function|purpose)\\s+does\\s+(\\w+)\\s+(play|have|serve)"
+    confidence: 0.85
+  - name: connection
+    pattern: "(connection|link|relationship)\\s+between\\s+(\\w+)\\s+and\\s+(\\w+)"
+    confidence: 0.9
+  - name: properties
+    pattern: "(properties|attributes|characteristics)\\s+of\\s+"
+    confidence: 0.85
+
+drift_patterns:
+  - name: investigate
+    pattern: "investigate\\s+(how|why|whether|if)"
+    confidence: 0.9
+  - name: connect_dots
+    pattern: "connect\\s+the\\s+dots"
+    confidence: 0.95
+  - name: explore
+    pattern: "explore\\s+the\\s+(relationship|connection|link|chain)"
+    confidence: 0.9
+  - name: hypothesize
+    pattern: "hypothesize|speculate|theorize"
+    confidence: 0.85
+  - name: trace
+    pattern: "trace\\s+(the|how|why)"
+    confidence: 0.9
+  - name: deeper
+    pattern: "(dig deeper|deeper analysis|look further|go beyond)"
+    confidence: 0.85
+
+basic_patterns:
+  - name: factoid
+    pattern: "what\\s+(is|are)\\s+(a|the|an)\\s+(\\w+)"
+    confidence: 0.8
+  - name: when
+    pattern: "when\\s+did\\s+\\w+\\s+(happen|occur|start|end)"
+    confidence: 0.85
+  - name: definition
+    pattern: "(define|definition\\s+of|meaning\\s+of)"
+    confidence: 0.9
+  - name: simple_who
+    pattern: "^(who|what|where|when)\\s+\\w+\\s*\\?$"
+    confidence: 0.75
+
+hybrid_patterns:
+  - name: compare
+    pattern: "(compare|contrast|difference|similarities)\\s+between"
+    confidence: 0.85
+  - name: identifier_heavy
+    pattern: "(?:[A-Z]{2,}[\\-_]?\\d+|\\b\\d{3,}\\b).*(?:[A-Z]{2,}[\\-_]?\\d+|\\b\\d{3,}\\b)"
+    confidence: 0.8
+  - name: mixed_intent
+    pattern: "(how does|what happens when)\\s+.+\\s+(affect|impact|influence)\\s+"
+    confidence: 0.8

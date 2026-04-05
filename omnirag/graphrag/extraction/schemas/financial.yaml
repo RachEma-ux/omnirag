@@ -1,0 +1,29 @@
+# Financial domain extraction schema
+name: financial
+description: Entities, transactions, regulations, risk
+
+entity_types:
+  - COMPANY
+  - FINANCIAL_INSTRUMENT
+  - TRANSACTION
+  - REGULATION
+  - REGULATOR
+  - RISK_FACTOR
+  - MARKET
+  - CURRENCY
+  - METRIC
+  - PORTFOLIO
+
+relationship_types:
+  - ISSUES
+  - TRADES_IN
+  - REGULATED_BY
+  - EXPOSES_TO
+  - HEDGES
+  - ACQUIRES
+  - INVESTS_IN
+  - REPORTS_TO
+  - BENCHMARKED_AGAINST
+  - DENOMINATED_IN
+
+constraints: "Extract financial entities with their ticker symbols where available. Include monetary values with currency. Flag compliance-related relationships."

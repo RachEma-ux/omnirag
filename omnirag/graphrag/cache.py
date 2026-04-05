@@ -14,9 +14,11 @@ from omnirag.graphrag.models import GraphEvidenceBundle, QueryMode
 
 logger = structlog.get_logger(__name__)
 
+TTL_BASIC = 900     # 15 minutes
+TTL_LOCAL = 600     # 10 minutes
 TTL_GLOBAL = 3600   # 1 hour
-TTL_LOCAL = 300     # 5 minutes
 TTL_DRIFT = 300     # 5 minutes
+TTL_HYBRID = 600    # 10 minutes
 
 
 def _hash(text: str) -> str:
@@ -53,21 +55,26 @@ class GraphCache:
             return None
 
     def _key(self, mode: QueryMode, query: str, principals: list[str],
-             entity_ids: list[str] | None = None) -> str:
+             entity_ids: list[str] | None = None,
+             graph_version: int = 0, embedding_version: int = 0,
+             prompt_version: int = 0) -> str:
+        """Build cache key: {mode}:{query_hash}:{acl_fingerprint}:{graph_version}:{embed_version}:{prompt_version}"""
         user = _user_hash(principals)
         query_h = _hash(query)
-        if mode == QueryMode.GLOBAL:
-            return f"graphrag:global:latest:{user}:{query_h}"
-        elif mode == QueryMode.DRIFT and entity_ids:
+        base = f"graphrag:{mode.value}:{query_h}:{user}:{graph_version}:{embedding_version}:{prompt_version}"
+        if mode == QueryMode.DRIFT and entity_ids:
             entity_h = _hash(":".join(sorted(entity_ids)))
-            return f"graphrag:drift:{entity_h}:{user}:{query_h}"
-        else:
-            return f"graphrag:local:{user}:{query_h}"
+            base += f":{entity_h}"
+        return base
 
     def _ttl(self, mode: QueryMode) -> int:
-        if mode == QueryMode.GLOBAL:
-            return TTL_GLOBAL
-        return TTL_LOCAL
+        return {
+            QueryMode.BASIC: TTL_BASIC,
+            QueryMode.LOCAL: TTL_LOCAL,
+            QueryMode.GLOBAL: TTL_GLOBAL,
+            QueryMode.DRIFT: TTL_DRIFT,
+            QueryMode.HYBRID: TTL_HYBRID,
+        }.get(mode, TTL_LOCAL)
 
     def get(self, mode: QueryMode, query: str, principals: list[str],
             entity_ids: list[str] | None = None) -> GraphEvidenceBundle | None:
