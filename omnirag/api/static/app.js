@@ -297,7 +297,7 @@ function renderHome() {
           <div id="intake-result" style="margin-top:8px;"></div>
         </div>
         <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:4px;">
-          <input type="file" id="intake-file-picker" multiple style="display:none" onchange="handleFilePick(this)" accept=".pdf,.txt,.md,.docx,.html,.csv,.json,.xml,.py,.ts,.js,.yaml,.yml" />
+          <input type="file" id="intake-file-picker" multiple style="display:none" onchange="handleFilePick(this)" />
           <button class="btn" onclick="document.getElementById('intake-file-picker').click()" style="font-size:11px; padding:3px 8px;">Local file</button>
           <button class="btn" onclick="document.getElementById('intake-source').value='https://example.com/doc.pdf'" style="font-size:11px; padding:3px 8px;">URL</button>
           <button class="btn" onclick="document.getElementById('intake-source').value='s3://bucket/prefix/'" style="font-size:11px; padding:3px 8px;">S3</button>
