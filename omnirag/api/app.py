@@ -16,6 +16,10 @@ from omnirag.api.routes.pipelines import router as pipelines_router
 from omnirag.api.routes.tasks import router as tasks_router
 from omnirag.api.routes.websocket import router as ws_router
 from omnirag.api.routes.intake import router as intake_router
+from omnirag.api.routes.search import router as search_router
+from omnirag.api.routes.stream import router as stream_router
+from omnirag.api.routes.webhooks import router as webhooks_router
+from omnirag.api.routes.export import router as export_router
 from omnirag.observability.metrics import metrics
 
 STATIC_DIR = Path(__file__).parent / "static"
@@ -47,6 +51,10 @@ def create_app() -> FastAPI:
     app.include_router(tasks_router, tags=["tasks"])
     app.include_router(ws_router, tags=["websocket"])
     app.include_router(intake_router, tags=["intake"])
+    app.include_router(search_router, tags=["search"])
+    app.include_router(stream_router, tags=["stream"])
+    app.include_router(webhooks_router, tags=["webhooks"])
+    app.include_router(export_router, tags=["export"])
 
     # Prometheus metrics endpoint
     @app.get("/metrics", response_class=PlainTextResponse, tags=["observability"])
@@ -299,5 +307,15 @@ Redoc.init("/openapi.json", {
 
         from omnirag.intake.defaults import register_defaults as register_intake
         register_intake()
+
+        # Output layer: register index writers
+        from omnirag.output.index_writers.base import get_writer_registry
+        from omnirag.output.index_writers.vector import VectorIndexWriter
+        from omnirag.output.index_writers.keyword import KeywordIndexWriter
+        from omnirag.output.index_writers.metadata import MetadataIndexWriter
+        registry = get_writer_registry()
+        registry.register(VectorIndexWriter())
+        registry.register(KeywordIndexWriter())
+        registry.register(MetadataIndexWriter())
 
     return app
