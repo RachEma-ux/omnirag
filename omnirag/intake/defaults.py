@@ -1,21 +1,19 @@
-"""Register default connectors and loaders."""
+"""Register all default connectors, extractors, materializers, and chunkers."""
 
 from __future__ import annotations
 
 
 def register_defaults() -> None:
-    """Register all built-in connectors and loaders."""
+    """Register all built-in components for the intake gate."""
+
+    # ── Connectors ──
     from omnirag.intake.connectors.registry import register_connector
-    from omnirag.intake.loaders.registry import register_loader
-
-    # Connectors (always available)
     from omnirag.intake.connectors.local import LocalConnector
-    register_connector(LocalConnector())
-
     from omnirag.intake.connectors.http import HttpConnector
+
+    register_connector(LocalConnector())
     register_connector(HttpConnector())
 
-    # Connectors (optional deps)
     try:
         from omnirag.intake.connectors.s3 import S3Connector
         register_connector(S3Connector())
@@ -28,16 +26,22 @@ def register_defaults() -> None:
     except Exception:
         pass
 
-    # Loaders (always available)
-    from omnirag.intake.loaders.text import TextLoader
-    register_loader(TextLoader())
+    # ── Extractors ──
+    from omnirag.intake.extractors.base import register_extractor
+    from omnirag.intake.extractors.text import TextExtractor
+    from omnirag.intake.extractors.pdf import PdfExtractor
+    from omnirag.intake.extractors.html import HtmlExtractor
+    from omnirag.intake.extractors.docx import DocxExtractor
 
-    # Loaders (optional deps — registered if library is available)
-    from omnirag.intake.loaders.pdf import PdfLoader
-    register_loader(PdfLoader())
+    register_extractor(PdfExtractor())
+    register_extractor(DocxExtractor())
+    register_extractor(HtmlExtractor())
+    register_extractor(TextExtractor())  # last — widest match
 
-    from omnirag.intake.loaders.docx import DocxLoader
-    register_loader(DocxLoader())
+    # ── Materializers ──
+    from omnirag.intake.materializers.base import register_default_materializers
+    register_default_materializers()
 
-    from omnirag.intake.loaders.html import HtmlLoader
-    register_loader(HtmlLoader())
+    # ── Chunkers ──
+    from omnirag.intake.chunkers.base import register_default_chunkers
+    register_default_chunkers()

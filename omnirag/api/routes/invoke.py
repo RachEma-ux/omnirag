@@ -18,6 +18,21 @@ class InvokeRequest(BaseModel):
     query: str
     params: dict[str, object] = {}
 
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "query": "What is Retrieval-Augmented Generation?",
+                    "params": {}
+                },
+                {
+                    "query": "Summarize the key findings from the uploaded documents",
+                    "params": {"top_k": 5, "temperature": 0.7}
+                }
+            ]
+        }
+    }
+
 
 class InvokeResponse(BaseModel):
     """Response from pipeline invocation."""

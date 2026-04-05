@@ -19,6 +19,16 @@ class PipelineUpload(BaseModel):
     """Request body for uploading a pipeline."""
     yaml_content: str
 
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "yaml_content": 'version: "4.0"\nname: local_ollama_rag\ndescription: "Local RAG pipeline using Ollama + in-memory store"\nexecution:\n  strategy: single\nstages:\n  - id: load\n    adapter: file_loader\n    params:\n      path: ./data\n      glob: "*.txt"\n  - id: chunk\n    adapter: recursive_splitter\n    params:\n      chunk_size: 256\n      overlap: 30\n    input: load\n  - id: store\n    adapter: memory\n    params:\n      mode: upsert\n    input: chunk\n  - id: retrieve\n    adapter: memory\n    params:\n      top_k: 3\n    input: query\n  - id: generate\n    adapter: ollama_gen\n    params:\n      model: tinyllama\n      base_url: http://localhost:11434\n      temperature: 0.5\n    input: retrieve\noutput: GenerationResult'
+                }
+            ]
+        }
+    }
+
 
 class PipelineResponse(BaseModel):
     """Response for pipeline info."""
