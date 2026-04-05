@@ -1,12 +1,12 @@
-/**
- * OmniRAG Home — main page with 4-tab interface
- * RAG | OmniGraph | Graph | Chat
- */
 "use client";
 
 import { useState } from "react";
+import IntakePanel from "../components/IntakePanel";
+import GraphExplorer from "../components/GraphExplorer";
+import ChatInterface from "../components/ChatInterface";
+import StatsPanel from "../components/StatsPanel";
 
-const TABS = ["RAG", "OmniGraph", "Graph", "Chat"] as const;
+const TABS = ["RAG", "OmniGraph", "Visualization", "Chat"] as const;
 type Tab = (typeof TABS)[number];
 
 export default function Home() {
@@ -20,7 +20,12 @@ export default function Home() {
           <span className="text-[#6366f1]">Omni</span>RAG
         </div>
         <div className="flex gap-2 text-xs text-[#888]">
-          <a href="/docs" className="px-2 py-0.5 border border-[#2a2a2a] rounded">API Docs</a>
+          <a href="/docs" className="px-2 py-0.5 border border-[#2a2a2a] rounded hover:text-white">
+            API Docs
+          </a>
+          <a href="/redoc" className="px-2 py-0.5 border border-[#2a2a2a] rounded hover:text-white">
+            ReDoc
+          </a>
         </div>
       </header>
 
@@ -43,32 +48,38 @@ export default function Home() {
 
       {/* Content */}
       <main className="flex-1 overflow-y-auto p-6">
-        {activeTab === "RAG" && <RAGTab />}
-        {activeTab === "OmniGraph" && <OmniGraphTab />}
-        {activeTab === "Graph" && <GraphTab />}
-        {activeTab === "Chat" && <ChatTab />}
+        {activeTab === "RAG" && (
+          <div className="max-w-3xl mx-auto space-y-6">
+            <h2 className="text-lg font-semibold">Intake & Retrieval</h2>
+            <StatsPanel />
+            <IntakePanel />
+          </div>
+        )}
+        {activeTab === "OmniGraph" && (
+          <div className="max-w-3xl mx-auto space-y-6">
+            <h2 className="text-lg font-semibold">Knowledge Graph</h2>
+            <GraphExplorer />
+          </div>
+        )}
+        {activeTab === "Visualization" && (
+          <div className="max-w-3xl mx-auto">
+            <h2 className="text-lg font-semibold mb-4">Graph Visualization</h2>
+            <p className="text-[#888] text-sm">
+              Interactive knowledge graph — available at{" "}
+              <a href="http://localhost:8100" className="text-[#6366f1] underline">
+                localhost:8100
+              </a>{" "}
+              (canvas-based visualization with force layout, path finding, filtering)
+            </p>
+          </div>
+        )}
+        {activeTab === "Chat" && <ChatInterface />}
       </main>
 
       {/* Footer */}
       <footer className="h-6 shrink-0 flex items-center px-3 border-t border-[#2a2a2a] text-xs text-[#555]">
-        <span id="status">OmniRAG v4.0</span>
+        <span>OmniRAG v4.0</span>
       </footer>
     </div>
   );
-}
-
-function RAGTab() {
-  return <div className="max-w-2xl mx-auto"><h2 className="text-lg font-semibold mb-4">RAG</h2><p className="text-[#888]">Intake, pipelines, adapters</p></div>;
-}
-
-function OmniGraphTab() {
-  return <div className="max-w-2xl mx-auto"><h2 className="text-lg font-semibold mb-4">OmniGraph</h2><p className="text-[#888]">Knowledge graph queries</p></div>;
-}
-
-function GraphTab() {
-  return <div className="max-w-2xl mx-auto"><h2 className="text-lg font-semibold mb-4">Graph Explorer</h2><p className="text-[#888]">Entity search, community browser</p></div>;
-}
-
-function ChatTab() {
-  return <div className="max-w-2xl mx-auto"><h2 className="text-lg font-semibold mb-4">Chat</h2><p className="text-[#888]">Ask questions about your documents</p></div>;
 }

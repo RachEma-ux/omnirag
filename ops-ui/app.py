@@ -18,7 +18,12 @@ try:
     @cl.on_message
     async def on_message(message: cl.Message):
         """Handle user messages — route to OmniRAG API."""
-        query = message.content
+        query = message.content.strip()
+
+        # Command handlers
+        if query.startswith("/"):
+            await handle_command(query)
+            return
 
         # Show thinking
         msg = cl.Message(content="Searching...")
@@ -61,6 +66,49 @@ try:
         except Exception as e:
             msg.content = f"Error: {e}"
             await msg.update()
+
+    async def handle_command(cmd: str):
+        """Handle slash commands for ops monitoring."""
+        try:
+            async with httpx.AsyncClient(timeout=30) as client:
+                if cmd == "/status":
+                    r = await client.get(f"{API_URL}/health")
+                    h = r.json()
+                    ports_r = await client.get(f"{API_URL}/ports")
+                    ports = ports_r.json()
+                    text = f"**Platform Status**\n- Status: {h['status']}\n- Version: {h['version']}\n"
+                    text += f"- Ports: {len(ports.get('ports', {}))} services registered\n"
+                    await cl.Message(content=text).send()
+
+                elif cmd == "/graph":
+                    r = await client.get(f"{API_URL}/graphrag/stats")
+                    s = r.json()
+                    text = f"**Graph Stats**\n- Mode: {s.get('mode')}\n"
+                    text += f"- Entities: {s.get('entities', 0)}\n"
+                    text += f"- Relationships: {s.get('relationships', 0)}\n"
+                    text += f"- Communities: {s.get('communities', 0)}\n"
+                    text += f"- Reports: {s.get('reports', 0)}\n"
+                    await cl.Message(content=text).send()
+
+                elif cmd == "/jobs":
+                    r = await client.get(f"{API_URL}/intake")
+                    jobs = r.json()
+                    if not jobs:
+                        await cl.Message(content="No intake jobs found.").send()
+                        return
+                    text = f"**Recent Jobs** ({len(jobs)})\n"
+                    for j in jobs[:10]:
+                        text += f"- `{j['id'][:8]}` — {j['state']} ({j.get('chunks_created', 0)} chunks)\n"
+                    await cl.Message(content=text).send()
+
+                elif cmd == "/trace":
+                    await cl.Message(content="Send a query first, then use `/trace` to see the last execution trace.").send()
+
+                else:
+                    await cl.Message(content=f"Unknown command: `{cmd}`\n\nAvailable: `/status`, `/graph`, `/jobs`, `/trace`").send()
+
+        except Exception as e:
+            await cl.Message(content=f"Command error: {e}").send()
 
     @cl.on_chat_start
     async def on_start():

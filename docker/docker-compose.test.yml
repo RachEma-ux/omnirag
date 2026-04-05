@@ -1,0 +1,48 @@
+version: "3.9"
+
+# OmniRAG CI test stack — lightweight services for integration tests
+# Usage: docker-compose -f docker/docker-compose.test.yml up -d
+#        pytest tests/ -v
+#        docker-compose -f docker/docker-compose.test.yml down -v
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: omnirag-test-postgres
+    ports:
+      - "8160:5432"
+    environment:
+      POSTGRES_DB: omnirag_test
+      POSTGRES_USER: omnirag
+      POSTGRES_PASSWORD: omnirag
+    tmpfs:
+      - /var/lib/postgresql/data  # RAM-backed for speed
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U omnirag"]
+      interval: 2s
+      timeout: 3s
+      retries: 10
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: omnirag-test-qdrant
+    ports:
+      - "8120:6333"
+    tmpfs:
+      - /qdrant/storage
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:6333/healthz || exit 1"]
+      interval: 2s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: omnirag-test-redis
+    ports:
+      - "8140:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 3s
+      retries: 10
