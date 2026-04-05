@@ -35,8 +35,9 @@ class VectorIndexWriter(BaseIndexWriter):
             import os
             from qdrant_client import QdrantClient
             from qdrant_client.models import Distance, VectorParams
-            host = os.environ.get("QDRANT_HOST", "localhost")
-            port = int(os.environ.get("QDRANT_PORT", "6333"))
+            from omnirag.config.ports import QDRANT_HOST as _QH, QDRANT_PORT as _QP
+            host = os.environ.get("QDRANT_HOST", _QH)
+            port = int(os.environ.get("QDRANT_PORT", str(_QP)))
             self._client = QdrantClient(host=host, port=port, timeout=10)
             # Ensure collection exists
             collections = [c.name for c in self._client.get_collections().collections]

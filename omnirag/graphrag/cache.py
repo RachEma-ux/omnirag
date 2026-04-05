@@ -41,7 +41,8 @@ class GraphCache:
             return self._redis
         try:
             import redis
-            addr = os.environ.get("REDIS_ADDR", "localhost:6379")
+            from omnirag.config.ports import REDIS_ADDR as _REDIS_DEFAULT
+            addr = os.environ.get("REDIS_ADDR", _REDIS_DEFAULT)
             host, port = addr.rsplit(":", 1)
             self._redis = redis.Redis(host=host, port=int(port), decode_responses=True)
             self._redis.ping()

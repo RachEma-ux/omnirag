@@ -50,8 +50,9 @@ class Repository:
 
     async def connect(self) -> bool:
         """Connect to PostgreSQL with health checks and migration runner."""
+        from omnirag.config.ports import DATABASE_URL
         dsn = os.environ.get("DATABASE_URL") or os.environ.get(
-            "POSTGRES_DSN", "postgres://postgres:postgres@localhost:5432/omnirag"
+            "POSTGRES_DSN", DATABASE_URL
         )
         try:
             import asyncpg

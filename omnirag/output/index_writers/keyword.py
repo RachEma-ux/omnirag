@@ -32,7 +32,8 @@ class KeywordIndexWriter(BaseIndexWriter):
             return self._client
         try:
             from elasticsearch import Elasticsearch
-            url = os.environ.get("ELASTICSEARCH_URL", "http://localhost:9200")
+            from omnirag.config.ports import ELASTICSEARCH_URL as _ES_DEFAULT
+            url = os.environ.get("ELASTICSEARCH_URL", _ES_DEFAULT)
             self._client = Elasticsearch(url, request_timeout=10)
             if not self._client.indices.exists(index=INDEX_NAME):
                 self._client.indices.create(index=INDEX_NAME, body={

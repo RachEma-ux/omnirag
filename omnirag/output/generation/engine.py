@@ -93,7 +93,10 @@ class OllamaAdapter(LLMAdapter):
     """Local Ollama LLM."""
     name = "ollama"
 
-    def __init__(self, model: str = "tinyllama", base_url: str = "http://localhost:11434") -> None:
+    def __init__(self, model: str = "tinyllama", base_url: str | None = None) -> None:
+        if base_url is None:
+            from omnirag.config.ports import OLLAMA_HOST
+            base_url = OLLAMA_HOST
         self.model = model
         self.base_url = base_url
 

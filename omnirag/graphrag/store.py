@@ -43,9 +43,10 @@ class GraphStore:
         self._chunk_entities: dict[str, list[str]] = {}  # chunk_id → [entity_ids]
 
     async def connect(self) -> bool:
-        uri = os.environ.get("NEO4J_URI", "bolt://localhost:7687")
-        user = os.environ.get("NEO4J_USER", "neo4j")
-        password = os.environ.get("NEO4J_PASSWORD", "password")
+        from omnirag.config.ports import NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD
+        uri = os.environ.get("NEO4J_URI", NEO4J_URI)
+        user = os.environ.get("NEO4J_USER", NEO4J_USER)
+        password = os.environ.get("NEO4J_PASSWORD", NEO4J_PASSWORD)
         try:
             from neo4j import AsyncGraphDatabase
             self._driver = AsyncGraphDatabase.driver(uri, auth=(user, password))

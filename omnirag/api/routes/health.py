@@ -15,6 +15,13 @@ async def health() -> dict[str, str]:
     return {"status": "ok", "version": __version__}
 
 
+@router.get("/ports")
+async def ports() -> dict:
+    """Port registry — all service port assignments."""
+    from omnirag.config.ports import get_all
+    return {"ports": get_all(), "range": "8100-8199"}
+
+
 @router.get("/metrics")
 async def metrics() -> dict[str, object]:
     """Basic metrics endpoint (Prometheus integration planned)."""
