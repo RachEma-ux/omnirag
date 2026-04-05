@@ -20,6 +20,7 @@ from omnirag.api.routes.search import router as search_router
 from omnirag.api.routes.stream import router as stream_router
 from omnirag.api.routes.webhooks import router as webhooks_router
 from omnirag.api.routes.export import router as export_router
+from omnirag.api.routes.graphrag import router as graphrag_router
 from omnirag.observability.metrics import metrics
 
 STATIC_DIR = Path(__file__).parent / "static"
@@ -59,6 +60,7 @@ def create_app() -> FastAPI:
     app.include_router(stream_router, tags=["stream"])
     app.include_router(webhooks_router, tags=["webhooks"])
     app.include_router(export_router, tags=["export"])
+    app.include_router(graphrag_router, tags=["graphrag"])
 
     # Prometheus metrics endpoint
     @app.get("/metrics", response_class=PlainTextResponse, tags=["observability"])
@@ -325,5 +327,9 @@ Redoc.init("/openapi.json", {
         registry.register(VectorIndexWriter())
         registry.register(KeywordIndexWriter())
         registry.register(MetadataIndexWriter())
+
+        # GraphRAG: connect graph store
+        from omnirag.graphrag.store import get_graph_store
+        await get_graph_store().connect()
 
     return app
