@@ -1055,6 +1055,7 @@ function renderGraphTab() {
         <button class="btn btn-primary" onclick="searchAndFocusEntity()" style="font-size:11px; padding:4px 10px;">Search</button>
         <button class="btn" onclick="loadGraphData()" style="font-size:11px; padding:4px 10px;">Reload</button>
         <button class="btn" onclick="addSampleData()" style="font-size:11px; padding:4px 10px;">+ Sample</button>
+        <button class="btn btn-primary" onclick="loadDemo()" style="font-size:11px; padding:4px 10px;">📚 Demo</button>
         <select id="layout-select" onchange="switchLayout(this.value)" class="input" style="width:auto; font-size:11px; padding:4px 6px;">
           <option value="force">Force</option>
           <option value="hierarchy">Hierarchy</option>
@@ -1530,6 +1531,25 @@ async function addSampleData() {
 
 async function searchEntity() {
   searchAndFocusEntity();
+}
+
+async function loadDemo() {
+  const stats = document.getElementById('graph-canvas-stats');
+  if (stats) stats.textContent = 'Loading demo (A Christmas Carol)...';
+  showToast('Loading demo — ingesting + extracting + building graph...');
+  try {
+    const r = await fetch(`${API}/demo/load`, { method: 'POST' });
+    const data = await r.json();
+    if (data.error) {
+      showToast(data.error, 'error');
+      return;
+    }
+    showToast(`Demo loaded: ${data.graph?.entities || 0} entities, ${data.graph?.relationships || 0} relationships`);
+    // Reload graph data from API
+    await loadGraphData();
+  } catch(e) {
+    showToast('Demo failed: ' + e.message, 'error');
+  }
 }
 
 // ─── Filter Panel Toggle ───
