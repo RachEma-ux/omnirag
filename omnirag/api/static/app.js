@@ -283,9 +283,6 @@ function renderHome() {
       </button>
 
       <div class="home-section">
-        <div class="home-section-header">
-          <div class="home-section-title">Intake Gate</div>
-        </div>
         <div class="card" style="margin:0 0 8px;">
           <div style="display:flex; gap:8px; align-items:flex-end;">
             <div style="flex:1;">
