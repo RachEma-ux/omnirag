@@ -99,6 +99,12 @@ class GraphStore:
         self._entities[entity.resolved_id] = entity
         if self._graph is not None:
             self._graph.add_node(entity.resolved_id, **entity.to_dict())
+        # Persist to PostgreSQL
+        try:
+            from omnirag.persistence import get_persistence_manager
+            await get_persistence_manager().save_entity(entity.to_dict())
+        except Exception:
+            pass
 
     async def get_entity(self, resolved_id: str) -> GraphEntity | None:
         if not self._use_fallback and self._driver:
@@ -145,6 +151,12 @@ class GraphStore:
                 self._graph[rel.source_id][rel.target_id]["weight"] += rel.weight
             else:
                 self._graph.add_edge(rel.source_id, rel.target_id, weight=rel.weight)
+        # Persist to PostgreSQL
+        try:
+            from omnirag.persistence import get_persistence_manager
+            await get_persistence_manager().save_relationship(rel.to_dict())
+        except Exception:
+            pass
 
     async def get_neighbors(self, entity_id: str, max_hops: int = 2,
                             acl_principals: list[str] | None = None) -> list[dict]:
@@ -216,6 +228,17 @@ class GraphStore:
 
     async def upsert_community(self, community: GraphCommunity) -> None:
         self._communities[community.community_id] = community
+        # Persist to PostgreSQL
+        try:
+            from omnirag.persistence import get_persistence_manager
+            await get_persistence_manager().save_community({
+                "community_id": community.community_id,
+                "level": community.level,
+                "entity_ids": community.entity_ids,
+                "acl_principals": community.acl_principals,
+            })
+        except Exception:
+            pass
         if not self._use_fallback and self._driver:
             async with self._driver.session() as session:
                 await session.run(

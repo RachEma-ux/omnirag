@@ -338,4 +338,11 @@ Redoc.init("/openapi.json", {
         from omnirag.graphrag.store import get_graph_store
         await get_graph_store().connect()
 
+        # Restore persisted state (entities, relationships, communities, comments)
+        from omnirag.persistence import get_persistence_manager
+        counts = await get_persistence_manager().load_all()
+        if any(v > 0 for v in counts.values()):
+            import structlog
+            structlog.get_logger(__name__).info("startup.restored", **counts)
+
     return app

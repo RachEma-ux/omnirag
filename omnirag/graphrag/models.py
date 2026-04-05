@@ -33,6 +33,7 @@ class GraphEntity:
             "aliases": self.aliases,
             "entity_type": self.entity_type,
             "acl_principals": self.acl_principals,
+            "metadata": self.metadata,
         }
 
 

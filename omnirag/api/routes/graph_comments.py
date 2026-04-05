@@ -35,6 +35,12 @@ async def create_comment(body: CommentCreate):
         "created_at": time.time(),
     }
     _comments[comment_id] = comment
+    # Persist to PostgreSQL
+    try:
+        from omnirag.persistence import get_persistence_manager
+        await get_persistence_manager().save_comment(comment)
+    except Exception:
+        pass
     return comment
 
 
