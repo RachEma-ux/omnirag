@@ -297,7 +297,8 @@ function renderHome() {
           <div id="intake-result" style="margin-top:8px;"></div>
         </div>
         <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:4px;">
-          <button class="btn" onclick="document.getElementById('intake-source').value='/path/to/file.pdf'" style="font-size:11px; padding:3px 8px;">Local file</button>
+          <input type="file" id="intake-file-picker" multiple style="display:none" onchange="handleFilePick(this)" accept=".pdf,.txt,.md,.docx,.html,.csv,.json,.xml,.py,.ts,.js,.yaml,.yml" />
+          <button class="btn" onclick="document.getElementById('intake-file-picker').click()" style="font-size:11px; padding:3px 8px;">Local file</button>
           <button class="btn" onclick="document.getElementById('intake-source').value='https://example.com/doc.pdf'" style="font-size:11px; padding:3px 8px;">URL</button>
           <button class="btn" onclick="document.getElementById('intake-source').value='s3://bucket/prefix/'" style="font-size:11px; padding:3px 8px;">S3</button>
           <button class="btn" onclick="document.getElementById('intake-source').value='github://owner/repo/docs'" style="font-size:11px; padding:3px 8px;">GitHub</button>
@@ -1208,6 +1209,56 @@ async function testAdapter(id) {
     adapterStatus[id] = 'error';
     statusEl.innerHTML = `<span style="color:var(--error);">Error: ${e.message}</span>`;
   }
+}
+
+// ─── File Upload ───
+
+async function handleFilePick(input) {
+  const files = input.files;
+  if (!files || files.length === 0) return;
+
+  const result = document.getElementById('intake-result');
+  result.innerHTML = `<div style="display:flex;align-items:center;gap:8px;"><div class="spinner"></div> Uploading ${files.length} file(s)...</div>`;
+
+  let totalDocs = 0;
+  let totalChunks = 0;
+  let errors = [];
+
+  for (const file of files) {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const r = await fetch(`${API}/intake/upload`, { method: 'POST', body: formData });
+      const data = await r.json();
+
+      if (data.state === 'active') {
+        totalDocs += data.documents_created || 0;
+        totalChunks += data.chunks_created || 0;
+      } else {
+        errors.push(`${file.name}: ${data.errors?.[0] || data.state}`);
+      }
+    } catch(e) {
+      errors.push(`${file.name}: ${e.message}`);
+    }
+  }
+
+  result.innerHTML = `
+    <div class="card" style="margin:8px 0 0; padding:12px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+        <span style="font-size:13px; font-weight:500; color:var(--text);">${files.length} file(s) uploaded</span>
+        <span class="badge badge-${errors.length ? 'warning' : 'success'}">${errors.length ? 'partial' : 'success'}</span>
+      </div>
+      <div style="font-size:12px; color:var(--text-dim); display:flex; gap:16px;">
+        <span>Docs: ${totalDocs}</span>
+        <span>Chunks: ${totalChunks}</span>
+      </div>
+      ${errors.length ? `<div style="font-size:11px; color:var(--error); margin-top:6px;">${errors.join('<br>')}</div>` : ''}
+    </div>
+  `;
+
+  if (totalDocs > 0) showToast(`Ingested: ${totalDocs} docs, ${totalChunks} chunks`);
+  input.value = '';
 }
 
 // ─── Intake Gate UI ───

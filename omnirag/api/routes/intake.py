@@ -5,7 +5,10 @@ Phase G: connectors CRUD, jobs, retry, backpressure, circuit breakers, lineage.
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException
+import os
+import tempfile
+
+from fastapi import APIRouter, HTTPException, UploadFile, File
 from pydantic import BaseModel
 
 from omnirag.intake.gate import get_gate
@@ -45,6 +48,25 @@ async def create_intake(body: IntakeBody):
     """Ingest from any source — full 12-state pipeline."""
     gate = get_gate()
     job = await gate.ingest(body.source, body.config, body.pipeline)
+    return job.to_dict()
+
+
+@router.post("/intake/upload", tags=["intake"])
+async def upload_file(file: UploadFile = File(...)):
+    """Upload a file directly for ingestion via the browser file picker."""
+    # Save uploaded file to temp directory
+    tmp_dir = os.environ.get("TMPDIR", tempfile.gettempdir())
+    upload_dir = os.path.join(tmp_dir, "omnirag_uploads")
+    os.makedirs(upload_dir, exist_ok=True)
+
+    file_path = os.path.join(upload_dir, file.filename or "upload")
+    content = await file.read()
+    with open(file_path, "wb") as f:
+        f.write(content)
+
+    # Ingest the saved file
+    gate = get_gate()
+    job = await gate.ingest(file_path, {})
     return job.to_dict()
 
 
