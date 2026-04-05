@@ -38,7 +38,12 @@ class GraphProjectionService:
             return stats
 
         # 2. Resolve mentions to canonical entities
-        entities = resolver.resolve(all_mentions)
+        result = resolver.resolve(all_mentions)
+        # Handle both old (list) and new (tuple) return format
+        if isinstance(result, tuple):
+            entities, resolution_cases = result
+        else:
+            entities = result
         stats["entities"] = len(entities)
 
         # Set ACL from document/chunk ACLs
