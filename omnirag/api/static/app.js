@@ -325,12 +325,8 @@ function renderHome() {
         <div class="home-section-header">
           <div class="home-section-title">Adapters</div>
         </div>
-        <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(140px,1fr)); gap:8px;">
-          ${['file_loader','recursive_splitter','memory','huggingface','qdrant','cross_encoder','openai_gen','ollama_gen'].map(a => `
-            <div class="card" style="padding:10px; margin:0;">
-              <code style="font-size:11px;">${a}</code>
-            </div>
-          `).join('')}
+        <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(160px,1fr)); gap:8px;">
+          ${getAdapterCards()}
         </div>
       </div>
     </div>
@@ -1032,6 +1028,185 @@ async function chatSend() {
     const thinking = document.getElementById(thinkingId);
     if (thinking) thinking.remove();
     chatAddMessage('assistant', `<span style="color:var(--error);">Error: ${e.message}</span>`);
+  }
+}
+
+// ─── Adapters (interactive) ───
+
+const ADAPTERS = [
+  { id: 'file_loader', name: 'File Loader', category: 'Ingestion', icon: '📂', dep: null, test: null,
+    desc: 'Load files from local filesystem (txt, pdf, docx, etc.)',
+    params: [{ key: 'path', type: 'text', placeholder: './data', label: 'File path or glob' },
+             { key: 'glob', type: 'text', placeholder: '*.pdf', label: 'File pattern' }] },
+  { id: 'recursive_splitter', name: 'Recursive Splitter', category: 'Chunking', icon: '✂️', dep: null, test: null,
+    desc: 'Split text by headings, paragraphs, or fixed size with overlap.',
+    params: [{ key: 'chunk_size', type: 'number', placeholder: '512', label: 'Chunk size (tokens)' },
+             { key: 'overlap', type: 'number', placeholder: '50', label: 'Overlap (tokens)' }] },
+  { id: 'memory', name: 'In-Memory Store', category: 'Retrieval', icon: '💾', dep: null, test: 'memory',
+    desc: 'In-memory vector store for development and testing.',
+    params: [{ key: 'top_k', type: 'number', placeholder: '5', label: 'Top K results' }] },
+  { id: 'huggingface', name: 'HuggingFace', category: 'Embedding', icon: '🤗', dep: 'sentence-transformers', test: 'huggingface',
+    desc: 'Generate embeddings using sentence-transformers models.',
+    params: [{ key: 'model', type: 'text', placeholder: 'BAAI/bge-large-en', label: 'Model name' }] },
+  { id: 'qdrant', name: 'Qdrant', category: 'Vector DB', icon: '🔷', dep: 'qdrant-client', test: 'qdrant',
+    desc: 'Production vector database for similarity search.',
+    params: [{ key: 'collection', type: 'text', placeholder: 'chunks', label: 'Collection name' },
+             { key: 'url', type: 'text', placeholder: 'http://localhost:6333', label: 'Qdrant URL' }] },
+  { id: 'cross_encoder', name: 'Cross Encoder', category: 'Reranking', icon: '🎯', dep: 'sentence-transformers', test: null,
+    desc: 'Rerank results using cross-encoder model for better relevance.',
+    params: [{ key: 'model', type: 'text', placeholder: 'cross-encoder/ms-marco-MiniLM-L-6-v2', label: 'Model' }] },
+  { id: 'openai_gen', name: 'OpenAI', category: 'Generation', icon: '🧠', dep: 'openai', test: 'openai',
+    desc: 'Generate answers using OpenAI API (GPT-4, etc.).',
+    params: [{ key: 'model', type: 'text', placeholder: 'gpt-4', label: 'Model' },
+             { key: 'api_key', type: 'password', placeholder: 'sk-...', label: 'API Key' }] },
+  { id: 'ollama_gen', name: 'Ollama', category: 'Generation', icon: '🦙', dep: null, test: 'ollama',
+    desc: 'Generate answers using local Ollama server.',
+    params: [{ key: 'model', type: 'text', placeholder: 'llama3', label: 'Model name' },
+             { key: 'base_url', type: 'text', placeholder: 'http://localhost:11434', label: 'Ollama URL' }] },
+];
+
+const adapterStatus = {};
+
+function getAdapterCards() {
+  return ADAPTERS.map(a => {
+    const status = adapterStatus[a.id] || 'unknown';
+    const dotColor = status === 'ok' ? 'var(--success)' : status === 'error' ? 'var(--error)' : 'var(--text-muted)';
+    return `
+      <div class="card" style="padding:10px; margin:0; cursor:pointer; transition:border-color 150ms;"
+           onclick="openAdapter('${a.id}')"
+           onmouseover="this.style.borderColor='var(--accent)'"
+           onmouseout="this.style.borderColor='var(--border)'">
+        <div style="display:flex; align-items:center; gap:6px; margin-bottom:4px;">
+          <span style="font-size:14px;">${a.icon}</span>
+          <span style="font-size:12px; font-weight:500; color:var(--text);">${a.name}</span>
+          <div style="width:6px; height:6px; border-radius:50%; background:${dotColor}; margin-left:auto;"></div>
+        </div>
+        <div style="font-size:10px; color:var(--text-dim);">${a.category}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function openAdapter(id) {
+  const a = ADAPTERS.find(x => x.id === id);
+  if (!a) return;
+  const body = document.getElementById('main-body');
+  const status = adapterStatus[a.id] || 'unknown';
+
+  body.innerHTML = `
+    <div style="padding:0 0 12px;">
+      <button onclick="renderHome()" style="display:flex; align-items:center; justify-content:center; width:24px; height:24px; background:none; border:none; color:var(--text-dim); cursor:pointer;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+    </div>
+    <div style="max-width:600px;">
+      <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
+        <span style="font-size:24px;">${a.icon}</span>
+        <div>
+          <h2 style="font-size:18px; font-weight:600; color:var(--text);">${a.name}</h2>
+          <span style="font-size:12px; color:var(--text-dim);">${a.category}${a.dep ? ' · requires: ' + a.dep : ' · no dependencies'}</span>
+        </div>
+      </div>
+      <p style="color:var(--text-dim); margin-bottom:16px;">${a.desc}</p>
+
+      <div class="card">
+        <div class="card-title">Configuration</div>
+        <div class="card-body">
+          <div style="display:flex; flex-direction:column; gap:10px;">
+            ${a.params.map(p => `
+              <div>
+                <label style="font-size:11px; color:var(--text-dim); display:block; margin-bottom:3px;">${p.label}</label>
+                <input class="input" type="${p.type}" id="adapter-${a.id}-${p.key}" placeholder="${p.placeholder}" />
+              </div>
+            `).join('')}
+          </div>
+          <div style="display:flex; gap:8px; margin-top:12px;">
+            <button class="btn btn-primary" onclick="saveAdapterConfig('${a.id}')">Save</button>
+            ${a.test ? `<button class="btn" onclick="testAdapter('${a.id}')">Test Connection</button>` : ''}
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:12px;">
+        <div class="card-title">Status</div>
+        <div class="card-body" id="adapter-status-${a.id}">
+          <span style="color:var(--text-dim);">Not tested yet</span>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function saveAdapterConfig(id) {
+  const a = ADAPTERS.find(x => x.id === id);
+  if (!a) return;
+  const config = {};
+  a.params.forEach(p => {
+    const el = document.getElementById(`adapter-${id}-${p.key}`);
+    if (el && el.value) config[p.key] = el.value;
+  });
+  localStorage.setItem(`adapter_config_${id}`, JSON.stringify(config));
+  showToast(`${a.name} config saved`);
+}
+
+async function testAdapter(id) {
+  const a = ADAPTERS.find(x => x.id === id);
+  if (!a) return;
+  const statusEl = document.getElementById(`adapter-status-${id}`);
+  statusEl.innerHTML = '<div style="display:flex;align-items:center;gap:6px;"><div class="spinner"></div> Testing...</div>';
+
+  const config = {};
+  a.params.forEach(p => {
+    const el = document.getElementById(`adapter-${id}-${p.key}`);
+    if (el && el.value) config[p.key] = el.value;
+  });
+
+  try {
+    let ok = false;
+    let msg = '';
+
+    if (id === 'qdrant') {
+      const url = config.url || 'http://localhost:6333';
+      const r = await fetch(`${url}/healthz`).catch(() => null);
+      ok = r && r.ok;
+      msg = ok ? `Qdrant reachable at ${url}` : `Cannot reach ${url}`;
+    } else if (id === 'ollama') {
+      const url = config.base_url || 'http://localhost:11434';
+      const r = await fetch(`${url}/api/tags`).catch(() => null);
+      ok = r && r.ok;
+      if (ok) {
+        const data = await r.json();
+        const models = data.models?.map(m => m.name) || [];
+        msg = `Ollama running. Models: ${models.join(', ') || 'none'}`;
+      } else {
+        msg = `Cannot reach ${url}`;
+      }
+    } else if (id === 'openai') {
+      const key = config.api_key || '';
+      ok = key.startsWith('sk-') && key.length > 20;
+      msg = ok ? 'API key format valid' : 'Invalid API key format (should start with sk-)';
+    } else if (id === 'huggingface') {
+      msg = 'HuggingFace model will be downloaded on first use';
+      ok = true;
+    } else if (id === 'memory') {
+      msg = 'In-memory store is always available';
+      ok = true;
+    } else {
+      msg = 'No test available for this adapter';
+      ok = true;
+    }
+
+    adapterStatus[id] = ok ? 'ok' : 'error';
+    statusEl.innerHTML = `
+      <div style="display:flex; align-items:center; gap:6px;">
+        <div style="width:8px; height:8px; border-radius:50%; background:${ok ? 'var(--success)' : 'var(--error)'};"></div>
+        <span style="color:${ok ? 'var(--success)' : 'var(--error)'};">${ok ? 'Connected' : 'Failed'}</span>
+      </div>
+      <p style="font-size:12px; color:var(--text-dim); margin-top:4px;">${msg}</p>
+    `;
+  } catch(e) {
+    adapterStatus[id] = 'error';
+    statusEl.innerHTML = `<span style="color:var(--error);">Error: ${e.message}</span>`;
   }
 }
 
