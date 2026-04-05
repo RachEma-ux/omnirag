@@ -22,6 +22,8 @@ from omnirag.api.routes.webhooks import router as webhooks_router
 from omnirag.api.routes.export import router as export_router
 from omnirag.api.routes.graphrag import router as graphrag_router
 from omnirag.api.routes.analytics import router as analytics_router
+from omnirag.api.routes.graph_ws import router as graph_ws_router
+from omnirag.api.routes.graph_comments import router as graph_comments_router
 from omnirag.observability.metrics import metrics
 
 STATIC_DIR = Path(__file__).parent / "static"
@@ -63,6 +65,8 @@ def create_app() -> FastAPI:
     app.include_router(export_router, tags=["export"])
     app.include_router(graphrag_router, tags=["graphrag"])
     app.include_router(analytics_router, tags=["analytics"])
+    app.include_router(graph_ws_router, tags=["graph-ws"])
+    app.include_router(graph_comments_router, tags=["graph-comments"])
 
     # Prometheus metrics endpoint
     @app.get("/metrics", response_class=PlainTextResponse, tags=["observability"])

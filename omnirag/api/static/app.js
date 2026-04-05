@@ -1049,29 +1049,64 @@ function renderGraphTab() {
   const body = document.getElementById('main-body');
   body.innerHTML = `
     <div style="display:flex; flex-direction:column; height:100%; margin:-24px -20px;">
-      <!-- Toolbar -->
-      <div style="display:flex; align-items:center; gap:8px; padding:10px 16px; border-bottom:1px solid var(--border); flex-shrink:0;">
-        <input class="input" id="entity-search" placeholder="Search entity..." style="flex:1; font-size:13px; padding:6px 10px;" />
-        <button class="btn btn-primary" onclick="searchAndFocusEntity()" style="font-size:12px; padding:5px 12px;">Search</button>
-        <button class="btn" onclick="loadGraphData()" style="font-size:12px; padding:5px 12px;">Reload</button>
-        <button class="btn" onclick="addSampleData()" style="font-size:12px; padding:5px 12px;">+ Sample</button>
+      <!-- Toolbar Row 1 -->
+      <div style="display:flex; align-items:center; gap:6px; padding:8px 12px; border-bottom:1px solid var(--border); flex-shrink:0; flex-wrap:wrap;">
+        <input class="input" id="entity-search" placeholder="Search entity..." style="flex:1; min-width:120px; font-size:12px; padding:5px 8px;" />
+        <button class="btn btn-primary" onclick="searchAndFocusEntity()" style="font-size:11px; padding:4px 10px;">Search</button>
+        <button class="btn" onclick="loadGraphData()" style="font-size:11px; padding:4px 10px;">Reload</button>
+        <button class="btn" onclick="addSampleData()" style="font-size:11px; padding:4px 10px;">+ Sample</button>
+        <select id="layout-select" onchange="switchLayout(this.value)" class="input" style="width:auto; font-size:11px; padding:4px 6px;">
+          <option value="force">Force</option>
+          <option value="hierarchy">Hierarchy</option>
+          <option value="circular">Circular</option>
+        </select>
+        <select id="color-mode" onchange="switchColorMode(this.value)" class="input" style="width:auto; font-size:11px; padding:4px 6px;">
+          <option value="type">Color: Type</option>
+          <option value="community">Color: Community</option>
+        </select>
+        <button class="btn" id="path-btn" onclick="togglePathMode()" style="font-size:11px; padding:4px 10px;">🔗 Path</button>
+        <button class="btn" onclick="exportGraphPNG()" style="font-size:11px; padding:4px 10px;">📷</button>
+        <span id="collab-indicator" style="font-size:11px; color:var(--text-muted);"></span>
       </div>
-      <!-- Canvas -->
-      <div style="flex:1; position:relative; overflow:hidden; background:#0a0c0f;">
-        <canvas id="graph-canvas" style="width:100%; height:100%; cursor:grab;"></canvas>
-        <!-- Legend -->
-        <div style="position:absolute; top:10px; right:10px; background:rgba(13,13,13,0.9); border:1px solid var(--border); border-radius:8px; padding:8px 12px; font-size:10px;">
-          <div style="display:flex; align-items:center; gap:4px; margin-bottom:3px;"><div style="width:8px;height:8px;border-radius:50%;background:#6366f1;"></div> PERSON</div>
-          <div style="display:flex; align-items:center; gap:4px; margin-bottom:3px;"><div style="width:8px;height:8px;border-radius:50%;background:#4caf50;"></div> ORG</div>
-          <div style="display:flex; align-items:center; gap:4px; margin-bottom:3px;"><div style="width:8px;height:8px;border-radius:50%;background:#f59e0b;"></div> PRODUCT</div>
-          <div style="display:flex; align-items:center; gap:4px; margin-bottom:3px;"><div style="width:8px;height:8px;border-radius:50%;background:#ef4444;"></div> PROJECT</div>
-          <div style="display:flex; align-items:center; gap:4px; margin-bottom:3px;"><div style="width:8px;height:8px;border-radius:50%;background:#06b6d4;"></div> CONCEPT</div>
-          <div style="display:flex; align-items:center; gap:4px;"><div style="width:8px;height:8px;border-radius:50%;background:#888;"></div> OTHER</div>
+      <!-- Body: Filter Panel + Canvas -->
+      <div style="flex:1; display:flex; overflow:hidden;">
+        <!-- Filter Panel (V2) -->
+        <div id="filter-panel" style="width:160px; flex-shrink:0; background:var(--bg-base); border-right:1px solid var(--border); padding:8px; overflow-y:auto; font-size:11px; scrollbar-width:none;">
+          <div style="font-weight:600; color:var(--text); margin-bottom:6px;">Filters</div>
+          <div style="margin-bottom:8px;">
+            <div style="color:var(--text-dim); margin-bottom:4px;">Entity Types</div>
+            <div id="filter-types"></div>
+          </div>
+          <div style="margin-bottom:8px;">
+            <div style="color:var(--text-dim); margin-bottom:4px;">Relationships</div>
+            <div id="filter-rels"></div>
+          </div>
+          <div style="margin-bottom:8px;">
+            <div style="color:var(--text-dim); margin-bottom:4px;">Weight ≥</div>
+            <input type="range" id="filter-weight" min="0" max="5" step="0.5" value="0" style="width:100%;" oninput="applyFilters()">
+            <div style="display:flex; justify-content:space-between; color:var(--text-muted);"><span>0</span><span id="weight-val">0</span><span>5</span></div>
+          </div>
+          <div style="margin-bottom:8px;">
+            <div style="color:var(--text-dim); margin-bottom:4px;">Community</div>
+            <select id="filter-community" class="input" style="font-size:10px; padding:3px;" onchange="applyFilters()">
+              <option value="">All</option>
+            </select>
+          </div>
+          <div style="color:var(--text-muted); margin-bottom:6px;" id="filter-count"></div>
+          <button class="btn" onclick="resetFilters()" style="font-size:10px; padding:3px 8px; width:100%;">Reset</button>
         </div>
-        <!-- Node detail panel -->
-        <div id="node-detail" style="display:none; position:absolute; bottom:10px; left:10px; right:10px; background:rgba(13,13,13,0.95); border:1px solid var(--border); border-radius:8px; padding:12px; font-size:12px; max-height:40%;overflow-y:auto;"></div>
-        <!-- Stats -->
-        <div id="graph-canvas-stats" style="position:absolute; bottom:10px; right:10px; font-size:10px; color:#555;"></div>
+        <!-- Canvas -->
+        <div style="flex:1; position:relative; overflow:hidden; background:#0a0c0f;">
+          <canvas id="graph-canvas" style="width:100%; height:100%; cursor:grab;"></canvas>
+          <!-- Legend -->
+          <div id="graph-legend" style="position:absolute; top:8px; right:8px; background:rgba(13,13,13,0.9); border:1px solid var(--border); border-radius:6px; padding:6px 10px; font-size:9px;"></div>
+          <!-- Node detail + comments panel -->
+          <div id="node-detail" style="display:none; position:absolute; bottom:8px; left:8px; right:8px; background:rgba(13,13,13,0.95); border:1px solid var(--border); border-radius:8px; padding:10px; font-size:11px; max-height:40%; overflow-y:auto;"></div>
+          <!-- Path info -->
+          <div id="path-info" style="display:none; position:absolute; top:8px; left:8px; background:rgba(99,102,241,0.15); border:1px solid #6366f1; border-radius:6px; padding:6px 10px; font-size:11px; color:var(--text);"></div>
+          <!-- Stats -->
+          <div id="graph-canvas-stats" style="position:absolute; bottom:8px; right:8px; font-size:9px; color:#444;"></div>
+        </div>
       </div>
     </div>
   `;
@@ -1079,7 +1114,7 @@ function renderGraphTab() {
   loadGraphData();
 }
 
-// ─── Knowledge Graph Visualization (Force-Directed Canvas) ───
+// ─── Knowledge Graph Visualization (V1–V8 Full Engine) ───
 
 const graphViz = {
   nodes: [], edges: [], canvas: null, ctx: null,
@@ -1087,6 +1122,18 @@ const graphViz = {
   offsetX: 0, offsetY: 0, scale: 1,
   dragging: null, panning: false, panStart: {x:0,y:0},
   selected: null, animFrame: null,
+  // V1: layout
+  layout: 'force',
+  // V2: filters
+  filters: { types: new Set(), relTypes: new Set(), weightMin: 0, search: '', community: '' },
+  // V3: pathfinding
+  pathMode: false, pathSource: null, pathTarget: null, pathNodes: new Set(), pathEdges: new Set(),
+  // V4: color mode
+  colorMode: 'type', communityColors: {},
+  // V6: expand/collapse
+  expansions: new Map(),
+  // V8: comments
+  comments: {},
 };
 
 const TYPE_COLORS = {
@@ -1222,98 +1269,133 @@ function graphDblClick(e) {
 }
 
 function selectNode(node) {
+  if (graphViz.pathMode) { handlePathClick(node); return; }
   graphViz.selected = node;
   const detail = document.getElementById('node-detail');
   if (!detail) return;
   const neighbors = graphViz.edges.filter(e => e.source === node.id || e.target === node.id);
+  const commentCount = graphViz.comments[node.id] || 0;
   detail.style.display = 'block';
   detail.innerHTML = `
     <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
       <div style="display:flex; align-items:center; gap:6px;">
-        <div style="width:10px;height:10px;border-radius:50%;background:${TYPE_COLORS[node.type]||'#888'};"></div>
+        <div style="width:10px;height:10px;border-radius:50%;background:${getNodeColor(node)};"></div>
         <strong style="color:var(--text);">${node.label}</strong>
         <span class="badge badge-info" style="font-size:9px;">${node.type}</span>
+        ${node.community ? `<span class="badge" style="font-size:9px;background:rgba(255,255,255,0.06);color:var(--text-dim);">C:${node.community.slice(0,6)}</span>` : ''}
       </div>
       <button onclick="document.getElementById('node-detail').style.display='none'" style="background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:14px;">✕</button>
     </div>
     ${node.aliases?.length ? `<div style="color:var(--text-dim);margin-bottom:4px;">Aliases: ${node.aliases.join(', ')}</div>` : ''}
-    <div style="color:var(--text-dim);margin-bottom:4px;">Connections: ${neighbors.length}</div>
-    ${neighbors.length ? `<div style="margin-top:6px;">` + neighbors.map(e => {
+    <div style="color:var(--text-dim);margin-bottom:6px;">Connections: ${neighbors.length}${commentCount ? ` · 💬 ${commentCount}` : ''}</div>
+    <div style="display:flex; gap:4px; margin-bottom:6px;">
+      <button class="btn" onclick="expandNode('${node.id}')" style="font-size:10px;padding:2px 6px;">Expand</button>
+      <button class="btn" onclick="collapseNode('${node.id}')" style="font-size:10px;padding:2px 6px;">Collapse</button>
+      <button class="btn" onclick="addComment('${node.id}')" style="font-size:10px;padding:2px 6px;">💬 Comment</button>
+    </div>
+    ${neighbors.length ? `<div>` + neighbors.slice(0,15).map(e => {
       const other = e.source === node.id ? e.targetLabel : e.sourceLabel;
       const dir = e.source === node.id ? '→' : '←';
-      return `<div style="padding:2px 0;color:var(--text-dim);font-size:11px;">${dir} <span style="color:var(--text);">${other}</span> <span style="color:var(--text-muted);">(${e.type}, w:${e.weight})</span></div>`;
-    }).join('') + '</div>' : ''}
+      return `<div style="padding:1px 0;color:var(--text-dim);font-size:10px;">${dir} <span style="color:var(--text);">${other}</span> <span style="color:var(--text-muted);">(${e.type}, w:${e.weight})</span></div>`;
+    }).join('') + (neighbors.length > 15 ? `<div style="color:var(--text-muted);font-size:10px;">...and ${neighbors.length-15} more</div>` : '') + '</div>' : ''}
   `;
   drawGraph();
 }
 
 function drawGraph() {
-  const {ctx, width, height, nodes, edges, scale, offsetX, offsetY, selected} = graphViz;
+  const {ctx, width, height, nodes, edges, scale, offsetX, offsetY, selected, pathNodes, pathEdges} = graphViz;
   if (!ctx) return;
   ctx.clearRect(0, 0, width, height);
 
+  const visibleNodes = nodes.filter(n => isNodeVisible(n));
+  const visibleEdges = edges.filter(e => isEdgeVisible(e));
+
   // Edges
-  for (const e of edges) {
+  for (const e of visibleEdges) {
     const src = nodes.find(n => n.id === e.source);
     const tgt = nodes.find(n => n.id === e.target);
     if (!src || !tgt) continue;
     const p1 = toScreen(src.x, src.y);
     const p2 = toScreen(tgt.x, tgt.y);
 
+    const isPath = pathEdges.has(e);
+    const isSelected = selected && (e.source === selected.id || e.target === selected.id);
+
     ctx.beginPath();
     ctx.moveTo(p1.x, p1.y);
     ctx.lineTo(p2.x, p2.y);
-    ctx.strokeStyle = (selected && (e.source === selected.id || e.target === selected.id)) ? '#6366f1' : '#2a2a2a';
-    ctx.lineWidth = Math.max(0.5, e.weight * 0.5 * scale);
+    ctx.strokeStyle = isPath ? '#6366f1' : isSelected ? '#4a4a6a' : '#1e1e1e';
+    ctx.lineWidth = isPath ? Math.max(2, 3 * scale) : Math.max(0.5, e.weight * 0.4 * scale);
     ctx.stroke();
 
-    // Edge label
     if (scale > 0.6) {
       const mx = (p1.x + p2.x) / 2, my = (p1.y + p2.y) / 2;
-      ctx.fillStyle = '#444';
-      ctx.font = `${Math.max(8, 9 * scale)}px sans-serif`;
+      ctx.fillStyle = isPath ? '#818cf8' : '#333';
+      ctx.font = `${Math.max(7, 8 * scale)}px sans-serif`;
       ctx.textAlign = 'center';
       ctx.fillText(e.type, mx, my - 3);
     }
   }
 
   // Nodes
-  for (const n of nodes) {
+  for (const n of visibleNodes) {
     const p = toScreen(n.x, n.y);
     const r = (n.radius || 14) * scale;
     const isSelected = selected && selected.id === n.id;
+    const isPath = pathNodes.has(n.id);
+    const color = getNodeColor(n);
 
-    // Glow for selected
+    // Path glow
+    if (isPath) {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, r + 6, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(99,102,241,0.25)';
+      ctx.fill();
+    }
+    // Selected glow
     if (isSelected) {
       ctx.beginPath();
       ctx.arc(p.x, p.y, r + 4, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(99,102,241,0.2)';
+      ctx.fillStyle = 'rgba(255,255,255,0.1)';
       ctx.fill();
     }
 
     // Circle
     ctx.beginPath();
     ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
-    ctx.fillStyle = TYPE_COLORS[n.type] || '#888';
+    ctx.fillStyle = color;
     ctx.fill();
-    if (isSelected) {
-      ctx.strokeStyle = '#fff';
+    if (isSelected || isPath) {
+      ctx.strokeStyle = isPath ? '#6366f1' : '#fff';
       ctx.lineWidth = 2;
       ctx.stroke();
     }
 
+    // Comment badge (V8)
+    const comments = graphViz.comments[n.id];
+    if (comments && scale > 0.5) {
+      ctx.fillStyle = '#f59e0b';
+      ctx.beginPath();
+      ctx.arc(p.x + r * 0.7, p.y - r * 0.7, 6 * scale, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#000';
+      ctx.font = `${Math.max(6, 7 * scale)}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.fillText(comments, p.x + r * 0.7, p.y - r * 0.7 + 3 * scale);
+    }
+
     // Label
     if (scale > 0.4) {
-      ctx.fillStyle = '#e8e8e8';
-      ctx.font = `${Math.max(9, 11 * scale)}px sans-serif`;
+      ctx.fillStyle = '#d0d0d0';
+      ctx.font = `${Math.max(8, 10 * scale)}px sans-serif`;
       ctx.textAlign = 'center';
-      ctx.fillText(n.label, p.x, p.y + r + 12 * scale);
+      ctx.fillText(n.label, p.x, p.y + r + 11 * scale);
     }
   }
 
   // Stats
   const stats = document.getElementById('graph-canvas-stats');
-  if (stats) stats.textContent = `${nodes.length} nodes · ${edges.length} edges · zoom ${scale.toFixed(1)}x`;
+  if (stats) stats.textContent = `${visibleNodes.length}/${nodes.length} nodes · ${visibleEdges.length}/${edges.length} edges · ${scale.toFixed(1)}x`;
 }
 
 // Force simulation (simple spring layout)
@@ -1378,6 +1460,7 @@ async function loadGraphData() {
       type: r.type || 'RELATED_TO', weight: r.weight || 1,
     }));
 
+    buildFilterUI();
     if (graphViz.nodes.length > 0) {
       runForceLayout(150);
     } else {
@@ -1435,29 +1518,306 @@ async function addSampleData() {
   for (const e of sampleEdges) {
     if (!graphViz.edges.find(x => x.source === e.source && x.target === e.target)) graphViz.edges.push(e);
   }
+  buildFilterUI();
   runForceLayout(200);
   showToast(`${samples.length} nodes + ${sampleEdges.length} edges added`);
 }
 
 async function searchEntity() {
-  const name = document.getElementById('entity-search')?.value;
-  if (!name) return;
   searchAndFocusEntity();
+}
+
+// ─── V1: Layout Algorithms ───
+
+function switchLayout(layout) {
+  graphViz.layout = layout;
+  if (layout === 'force') runForceLayout(150);
+  else if (layout === 'hierarchy') runHierarchyLayout();
+  else if (layout === 'circular') runCircularLayout();
+}
+
+function runHierarchyLayout() {
+  const {nodes, edges} = graphViz;
+  if (!nodes.length) return;
+  // Sort by connection count (most connected at top)
+  const conns = {};
+  edges.forEach(e => { conns[e.source] = (conns[e.source]||0)+1; conns[e.target] = (conns[e.target]||0)+1; });
+  const sorted = [...nodes].sort((a,b) => (conns[b.id]||0) - (conns[a.id]||0));
+  const cols = Math.ceil(Math.sqrt(sorted.length));
+  sorted.forEach((n, i) => {
+    n.x = (i % cols - cols/2) * 100;
+    n.y = (Math.floor(i / cols) - Math.floor(sorted.length/cols)/2) * 80;
+  });
+  drawGraph();
+}
+
+function runCircularLayout() {
+  const {nodes} = graphViz;
+  if (!nodes.length) return;
+  const radius = Math.max(100, nodes.length * 15);
+  nodes.forEach((n, i) => {
+    const angle = (2 * Math.PI * i) / nodes.length;
+    n.x = Math.cos(angle) * radius;
+    n.y = Math.sin(angle) * radius;
+  });
+  drawGraph();
+}
+
+// ─── V2: Filters ───
+
+function buildFilterUI() {
+  const types = new Set(graphViz.nodes.map(n => n.type));
+  const relTypes = new Set(graphViz.edges.map(e => e.type));
+  const communities = new Set(graphViz.nodes.map(n => n.community).filter(Boolean));
+
+  const typesEl = document.getElementById('filter-types');
+  if (typesEl) typesEl.innerHTML = [...types].map(t =>
+    `<label style="display:flex;align-items:center;gap:4px;margin-bottom:2px;cursor:pointer;"><input type="checkbox" checked onchange="applyFilters()" data-filter-type="${t}"><div style="width:6px;height:6px;border-radius:50%;background:${TYPE_COLORS[t]||'#888'};"></div>${t}</label>`
+  ).join('');
+
+  const relsEl = document.getElementById('filter-rels');
+  if (relsEl) relsEl.innerHTML = [...relTypes].map(t =>
+    `<label style="display:flex;align-items:center;gap:4px;margin-bottom:2px;cursor:pointer;"><input type="checkbox" checked onchange="applyFilters()" data-filter-rel="${t}">${t}</label>`
+  ).join('');
+
+  const commEl = document.getElementById('filter-community');
+  if (commEl) {
+    commEl.innerHTML = '<option value="">All</option>' + [...communities].map(c =>
+      `<option value="${c}">${c.slice(0,8)}</option>`
+    ).join('');
+  }
+
+  updateLegend();
+}
+
+function applyFilters() {
+  const activeTypes = new Set();
+  document.querySelectorAll('[data-filter-type]').forEach(cb => { if (cb.checked) activeTypes.add(cb.dataset.filterType); });
+  const activeRels = new Set();
+  document.querySelectorAll('[data-filter-rel]').forEach(cb => { if (cb.checked) activeRels.add(cb.dataset.filterRel); });
+  const weightMin = parseFloat(document.getElementById('filter-weight')?.value || '0');
+  const community = document.getElementById('filter-community')?.value || '';
+
+  graphViz.filters = { types: activeTypes, relTypes: activeRels, weightMin, community };
+
+  const wv = document.getElementById('weight-val');
+  if (wv) wv.textContent = weightMin;
+
+  // Count visible
+  const visNodes = graphViz.nodes.filter(n => isNodeVisible(n)).length;
+  const fc = document.getElementById('filter-count');
+  if (fc) fc.textContent = `${visNodes} of ${graphViz.nodes.length}`;
+
+  drawGraph();
+}
+
+function resetFilters() {
+  document.querySelectorAll('[data-filter-type],[data-filter-rel]').forEach(cb => cb.checked = true);
+  const w = document.getElementById('filter-weight'); if (w) w.value = 0;
+  const c = document.getElementById('filter-community'); if (c) c.value = '';
+  graphViz.filters = { types: new Set(), relTypes: new Set(), weightMin: 0, community: '' };
+  drawGraph();
+}
+
+function isNodeVisible(n) {
+  const f = graphViz.filters;
+  if (f.types.size > 0 && !f.types.has(n.type)) return false;
+  if (f.community && n.community !== f.community) return false;
+  return true;
+}
+
+function isEdgeVisible(e) {
+  const f = graphViz.filters;
+  if (f.relTypes.size > 0 && !f.relTypes.has(e.type)) return false;
+  if (e.weight < f.weightMin) return false;
+  const src = graphViz.nodes.find(n => n.id === e.source);
+  const tgt = graphViz.nodes.find(n => n.id === e.target);
+  if (src && !isNodeVisible(src)) return false;
+  if (tgt && !isNodeVisible(tgt)) return false;
+  return true;
+}
+
+// ─── V3: Path Finding ───
+
+function togglePathMode() {
+  graphViz.pathMode = !graphViz.pathMode;
+  graphViz.pathSource = null;
+  graphViz.pathTarget = null;
+  graphViz.pathNodes.clear();
+  graphViz.pathEdges.clear();
+  const btn = document.getElementById('path-btn');
+  if (btn) btn.style.background = graphViz.pathMode ? '#6366f1' : '';
+  if (btn) btn.style.color = graphViz.pathMode ? '#fff' : '';
+  const pi = document.getElementById('path-info');
+  if (pi) pi.style.display = 'none';
+  drawGraph();
+}
+
+function handlePathClick(node) {
+  if (!graphViz.pathSource) {
+    graphViz.pathSource = node.id;
+    showToast(`Start: ${node.label}. Click destination.`);
+  } else if (!graphViz.pathTarget) {
+    graphViz.pathTarget = node.id;
+    computeShortestPath();
+  }
+}
+
+function computeShortestPath() {
+  const {nodes, edges, pathSource, pathTarget} = graphViz;
+  if (!pathSource || !pathTarget) return;
+
+  // BFS
+  const queue = [[pathSource]];
+  const visited = new Set([pathSource]);
+  let found = null;
+
+  while (queue.length > 0) {
+    const path = queue.shift();
+    const current = path[path.length - 1];
+    if (current === pathTarget) { found = path; break; }
+
+    for (const e of edges) {
+      let neighbor = null;
+      if (e.source === current && !visited.has(e.target)) neighbor = e.target;
+      if (e.target === current && !visited.has(e.source)) neighbor = e.source;
+      if (neighbor) {
+        visited.add(neighbor);
+        queue.push([...path, neighbor]);
+      }
+    }
+  }
+
+  const pi = document.getElementById('path-info');
+  if (found) {
+    graphViz.pathNodes = new Set(found);
+    graphViz.pathEdges.clear();
+    let totalWeight = 0;
+    for (let i = 0; i < found.length - 1; i++) {
+      const edge = edges.find(e =>
+        (e.source === found[i] && e.target === found[i+1]) ||
+        (e.target === found[i] && e.source === found[i+1])
+      );
+      if (edge) { graphViz.pathEdges.add(edge); totalWeight += edge.weight || 1; }
+    }
+    const names = found.map(id => nodes.find(n => n.id === id)?.label || id.slice(0,8));
+    if (pi) { pi.style.display = 'block'; pi.innerHTML = `Path: ${names.join(' → ')} (length ${found.length-1}, weight ${totalWeight.toFixed(1)}) <button onclick="togglePathMode()" style="margin-left:8px;background:none;border:none;color:var(--text-dim);cursor:pointer;">✕</button>`; }
+  } else {
+    if (pi) { pi.style.display = 'block'; pi.textContent = 'No path found'; }
+  }
+  drawGraph();
+}
+
+// ─── V4: Color Mode ───
+
+function switchColorMode(mode) {
+  graphViz.colorMode = mode;
+  updateLegend();
+  drawGraph();
+}
+
+function getNodeColor(n) {
+  if (graphViz.colorMode === 'community' && n.community) {
+    if (!graphViz.communityColors[n.community]) {
+      const keys = Object.keys(graphViz.communityColors);
+      const hue = (keys.length * 137.5) % 360;
+      graphViz.communityColors[n.community] = `hsl(${hue}, 65%, 55%)`;
+    }
+    return graphViz.communityColors[n.community];
+  }
+  return TYPE_COLORS[n.type] || '#888';
+}
+
+function updateLegend() {
+  const el = document.getElementById('graph-legend');
+  if (!el) return;
+  if (graphViz.colorMode === 'community') {
+    const comms = [...new Set(graphViz.nodes.map(n => n.community).filter(Boolean))];
+    el.innerHTML = comms.slice(0,8).map(c =>
+      `<div style="display:flex;align-items:center;gap:3px;margin-bottom:2px;"><div style="width:7px;height:7px;border-radius:50%;background:${graphViz.communityColors[c]||'#888'};"></div>${c.slice(0,6)}</div>`
+    ).join('');
+  } else {
+    el.innerHTML = Object.entries(TYPE_COLORS).slice(0,7).map(([t,c]) =>
+      `<div style="display:flex;align-items:center;gap:3px;margin-bottom:2px;"><div style="width:7px;height:7px;border-radius:50%;background:${c};"></div>${t}</div>`
+    ).join('');
+  }
+}
+
+// ─── V5: Export to PNG ───
+
+function exportGraphPNG() {
+  const canvas = graphViz.canvas;
+  if (!canvas) return;
+  const link = document.createElement('a');
+  link.download = `omnigraph-${Date.now()}.png`;
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+  showToast('Graph exported as PNG');
+}
+
+// ─── V6: Expand/Collapse ───
+
+async function expandNode(nodeId) {
   try {
-    // Use local search as entity lookup
     const r = await fetch(`${API}/graphrag/query/local`, {
       method: 'POST', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ query: 'details about ' + name, user_principal: 'public' }),
+      body: JSON.stringify({ query: `neighbors of entity ${nodeId}`, user_principal: 'public' }),
     });
     const data = await r.json();
-    const entities = data.evidence?.entities_count || 0;
-    result.innerHTML = `
-      <div style="margin-top:8px;">
-        <p style="color:var(--text);">Found ${entities} related entities</p>
-        ${data.answer ? '<p style="color:var(--text-dim); margin-top:8px;">' + data.answer + '</p>' : ''}
-      </div>
-    `;
-  } catch(e) { result.innerHTML = '<p style="color:var(--error);">' + e.message + '</p>'; }
+    const newNodes = [];
+    if (data.evidence?.entities) {
+      for (const e of data.evidence.entities) {
+        const id = e.resolved_id || e.id || e.canonical_name;
+        if (!graphViz.nodes.find(n => n.id === id)) {
+          const parent = graphViz.nodes.find(n => n.id === nodeId);
+          const newNode = {
+            id, label: e.canonical_name || e.name || id.slice(0,8),
+            type: e.entity_type || e.type || 'ENTITY',
+            x: (parent?.x || 0) + (Math.random()-0.5)*100,
+            y: (parent?.y || 0) + (Math.random()-0.5)*100,
+            radius: 12,
+          };
+          graphViz.nodes.push(newNode);
+          newNodes.push(id);
+          // Add edge
+          graphViz.edges.push({source: nodeId, target: id, sourceLabel: parent?.label||'', targetLabel: newNode.label, type: 'RELATED_TO', weight: 1});
+        }
+      }
+    }
+    graphViz.expansions.set(nodeId, new Set(newNodes));
+    if (newNodes.length) {
+      runForceLayout(80);
+      showToast(`Expanded: +${newNodes.length} nodes`);
+    } else {
+      showToast('No new neighbors found');
+    }
+  } catch(e) { showToast('Expand failed: ' + e.message, 'error'); }
+}
+
+function collapseNode(nodeId) {
+  const expanded = graphViz.expansions.get(nodeId);
+  if (!expanded || expanded.size === 0) return;
+  graphViz.nodes = graphViz.nodes.filter(n => !expanded.has(n.id));
+  graphViz.edges = graphViz.edges.filter(e => !expanded.has(e.source) && !expanded.has(e.target));
+  graphViz.expansions.delete(nodeId);
+  drawGraph();
+  showToast('Collapsed');
+}
+
+// ─── V8: Comments ───
+
+async function addComment(nodeId) {
+  const text = prompt('Add comment:');
+  if (!text) return;
+  try {
+    await fetch(`${API}/v1/graph/comments`, {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ target_id: nodeId, target_type: 'entity', text, author: 'user' }),
+    });
+    graphViz.comments[nodeId] = (graphViz.comments[nodeId] || 0) + 1;
+    drawGraph();
+    showToast('Comment added');
+  } catch { showToast('Comment API not available yet', 'error'); graphViz.comments[nodeId] = (graphViz.comments[nodeId] || 0) + 1; drawGraph(); }
 }
 
 // ─── Chat Tab (OpenCode Chat template) ───
