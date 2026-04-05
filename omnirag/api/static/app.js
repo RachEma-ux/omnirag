@@ -1076,11 +1076,10 @@ async function showIntakeJobs() {
   try {
     const jobs = await fetch(`${API}/intake`).then(r => r.json());
     const backBar = `
-      <div style="display:flex; align-items:center; gap:10px; padding:0 0 16px; border-bottom:1px solid var(--border); margin-bottom:16px;">
-        <button onclick="renderHome()" style="display:flex; align-items:center; justify-content:center; width:32px; height:32px; background:var(--bg-raised); border:1px solid var(--border); color:var(--text); cursor:pointer; border-radius:8px;">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+      <div style="padding:0 0 12px;">
+        <button onclick="renderHome()" style="display:flex; align-items:center; justify-content:center; width:24px; height:24px; background:none; border:none; color:var(--text-dim); cursor:pointer;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
         </button>
-        <h2 style="font-size:18px; font-weight:600; color:var(--text);">Intake Jobs</h2>
       </div>`;
     if (!jobs.length) {
       body.innerHTML = backBar + '<div class="empty-state"><p>No intake jobs yet. Ingest a source to get started.</p></div>';
@@ -1117,11 +1116,10 @@ async function viewIntakeJob(jobId) {
   try {
     const data = await fetch(`${API}/intake/${jobId}`).then(r => r.json());
     body.innerHTML = `
-      <div style="display:flex; align-items:center; gap:10px; padding:0 0 16px; border-bottom:1px solid var(--border); margin-bottom:16px;">
-        <button onclick="showIntakeJobs()" style="display:flex; align-items:center; justify-content:center; width:32px; height:32px; background:var(--bg-raised); border:1px solid var(--border); color:var(--text); cursor:pointer; border-radius:8px;">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+      <div style="padding:0 0 12px;">
+        <button onclick="showIntakeJobs()" style="display:flex; align-items:center; justify-content:center; width:24px; height:24px; background:none; border:none; color:var(--text-dim); cursor:pointer;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
         </button>
-        <h2 style="font-size:18px; font-weight:600; color:var(--text);">Job ${data.id}</h2>
       </div>
       <div style="max-width:700px;">
         </div>
