@@ -299,7 +299,7 @@ function renderHome() {
         <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:4px;">
           <input type="file" id="intake-file-picker" multiple style="display:none" onchange="handleFilePick(this)" accept="application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/html,text/csv,text/markdown,application/json,application/xml,application/octet-stream" />
           <button class="btn" onclick="document.getElementById('intake-file-picker').click()" style="font-size:11px; padding:3px 8px;">Browse files</button>
-          <button class="btn" onclick="document.getElementById('intake-source').value='https://example.com/doc.pdf'" style="font-size:11px; padding:3px 8px;">URL</button>
+          <button class="btn" onclick="fetchUrlViaBrowser()" style="font-size:11px; padding:3px 8px;">Fetch URL</button>
           <button class="btn" onclick="document.getElementById('intake-source').value='s3://bucket/prefix/'" style="font-size:11px; padding:3px 8px;">S3</button>
           <button class="btn" onclick="document.getElementById('intake-source').value='github://owner/repo/docs'" style="font-size:11px; padding:3px 8px;">GitHub</button>
           <button class="btn" onclick="showIntakeJobs()" style="font-size:11px; padding:3px 8px;">View Jobs</button>
@@ -1209,6 +1209,92 @@ async function testAdapter(id) {
     adapterStatus[id] = 'error';
     statusEl.innerHTML = `<span style="color:var(--error);">Error: ${e.message}</span>`;
   }
+}
+
+// ─── Fetch URL via Browser (bypasses CDN blocks) ───
+
+async function fetchUrlViaBrowser() {
+  const sourceInput = document.getElementById('intake-source');
+  let url = sourceInput.value.trim();
+
+  if (!url) {
+    url = prompt('Enter URL to fetch (PDF, HTML, etc.):');
+    if (!url) return;
+    sourceInput.value = url;
+  }
+
+  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    showToast('Enter a valid URL starting with http:// or https://', 'error');
+    return;
+  }
+
+  const result = document.getElementById('intake-result');
+  result.innerHTML = '<div style="display:flex;align-items:center;gap:8px;"><div class="spinner"></div> Fetching via browser...</div>';
+
+  try {
+    // Download via browser fetch (has full TLS + cookies — bypasses CDN blocks)
+    const response = await fetch(url, { mode: 'cors' }).catch(() => null);
+
+    // If CORS fails, try no-cors (opaque response — won't give us content)
+    // Fall back to server-side fetch
+    if (!response || !response.ok) {
+      result.innerHTML = '<div style="display:flex;align-items:center;gap:8px;"><div class="spinner"></div> Browser fetch blocked by CORS. Trying server-side...</div>';
+      // Fall back to server intake
+      const r = await fetch(`${API}/intake`, {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ source: url, config: {} }),
+      });
+      const data = await r.json();
+      renderIntakeResult(data);
+      return;
+    }
+
+    const blob = await response.blob();
+    const filename = url.split('/').pop().split('?')[0] || 'download';
+
+    // Upload the blob to server
+    const formData = new FormData();
+    formData.append('file', blob, filename);
+
+    const uploadResp = await fetch(`${API}/intake/upload`, { method: 'POST', body: formData });
+    const data = await uploadResp.json();
+    renderIntakeResult(data);
+
+  } catch(e) {
+    // Final fallback: server-side fetch
+    try {
+      result.innerHTML = '<div style="display:flex;align-items:center;gap:8px;"><div class="spinner"></div> Trying server-side fetch...</div>';
+      const r = await fetch(`${API}/intake`, {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ source: url, config: {} }),
+      });
+      const data = await r.json();
+      renderIntakeResult(data);
+    } catch(e2) {
+      result.innerHTML = `<div style="color:var(--error); font-size:13px;">Failed: ${e2.message}. Try downloading the file manually and use Browse files.</div>`;
+    }
+  }
+}
+
+function renderIntakeResult(data) {
+  const result = document.getElementById('intake-result');
+  const stateColor = data.state === 'active' ? 'var(--success)' : data.state === 'failed' ? 'var(--error)' : 'var(--accent)';
+  result.innerHTML = `
+    <div class="card" style="margin:8px 0 0; padding:12px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+        <span style="font-size:13px; font-weight:500; color:var(--text);">Job ${data.id}</span>
+        <span class="badge" style="background:${stateColor}20; color:${stateColor};">${data.state}</span>
+      </div>
+      <div style="font-size:12px; color:var(--text-dim); display:flex; gap:16px; flex-wrap:wrap;">
+        <span>Files: ${data.files_found || 0}</span>
+        <span>Loaded: ${data.files_loaded || 0}</span>
+        <span>Docs: ${data.documents_created || 0}</span>
+        <span>Chunks: ${data.chunks_created || 0}</span>
+      </div>
+      ${data.errors?.length ? `<div style="font-size:11px; color:var(--error); margin-top:6px;">${data.errors.slice(0,3).join('<br>')}</div>` : ''}
+    </div>
+  `;
+  if (data.state === 'active') showToast(`Ingested: ${data.documents_created} docs, ${data.chunks_created} chunks`);
 }
 
 // ─── File Upload ───
