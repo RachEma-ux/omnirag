@@ -1745,26 +1745,15 @@ function getNodeColor(n) {
 function updateLegend() {
   const el = document.getElementById('graph-legend');
   if (!el) return;
-
   if (graphViz.colorMode === 'community') {
     const comms = [...new Set(graphViz.nodes.map(n => n.community).filter(Boolean))];
-    if (comms.length > 0) {
-      el.innerHTML = `<div style="color:var(--text-muted);margin-bottom:3px;">Communities</div>` +
-        comms.slice(0,8).map(c =>
-          `<div style="display:flex;align-items:center;gap:3px;margin-bottom:2px;"><div style="width:7px;height:7px;border-radius:50%;background:${graphViz.communityColors[c]||'#888'};"></div>${c.slice(0,6)}</div>`
-        ).join('');
-    } else {
-      // No communities — show fallback message + type colors
-      el.innerHTML = `<div style="color:var(--text-muted);margin-bottom:3px;">No communities yet</div>` +
-        Object.entries(TYPE_COLORS).slice(0,7).map(([t,c]) =>
-          `<div style="display:flex;align-items:center;gap:3px;margin-bottom:2px;"><div style="width:7px;height:7px;border-radius:50%;background:${c};"></div>${t}</div>`
-        ).join('');
-    }
+    el.innerHTML = comms.slice(0,8).map(c =>
+      `<div style="display:flex;align-items:center;gap:3px;margin-bottom:2px;"><div style="width:7px;height:7px;border-radius:50%;background:${graphViz.communityColors[c]||'#888'};"></div>${c.slice(0,6)}</div>`
+    ).join('');
   } else {
-    el.innerHTML = `<div style="color:var(--text-muted);margin-bottom:3px;">Types</div>` +
-      Object.entries(TYPE_COLORS).slice(0,7).map(([t,c]) =>
-        `<div style="display:flex;align-items:center;gap:3px;margin-bottom:2px;"><div style="width:7px;height:7px;border-radius:50%;background:${c};"></div>${t}</div>`
-      ).join('');
+    el.innerHTML = Object.entries(TYPE_COLORS).slice(0,7).map(([t,c]) =>
+      `<div style="display:flex;align-items:center;gap:3px;margin-bottom:2px;"><div style="width:7px;height:7px;border-radius:50%;background:${c};"></div>${t}</div>`
+    ).join('');
   }
 }
 
