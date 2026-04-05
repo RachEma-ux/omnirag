@@ -1065,7 +1065,6 @@ function renderGraphTab() {
           <option value="community">Color: Community</option>
         </select>
         <button class="btn" id="path-btn" onclick="togglePathMode()" style="font-size:11px; padding:4px 10px;">🔗 Path</button>
-        <button class="btn" onclick="exportGraphPNG()" style="font-size:11px; padding:4px 10px;">📷</button>
         <button class="btn" id="filter-toggle-btn" onclick="toggleFilterPanel()" style="font-size:11px; padding:4px 10px;">☰ Filter</button>
         <span id="collab-indicator" style="font-size:11px; color:var(--text-muted);"></span>
       </div>
