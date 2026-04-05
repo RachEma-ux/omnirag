@@ -1075,17 +1075,18 @@ async function showIntakeJobs() {
   body.innerHTML = '<div style="display:flex;align-items:center;gap:8px;"><div class="spinner"></div> Loading jobs...</div>';
   try {
     const jobs = await fetch(`${API}/intake`).then(r => r.json());
-    if (!jobs.length) {
-      body.innerHTML = '<div class="empty-state"><p>No intake jobs yet. Ingest a source to get started.</p></div>';
-      return;
-    }
-    body.innerHTML = `
+    const backBar = `
       <div style="display:flex; align-items:center; gap:10px; padding:0 0 16px; border-bottom:1px solid var(--border); margin-bottom:16px;">
         <button onclick="renderHome()" style="display:flex; align-items:center; justify-content:center; width:32px; height:32px; background:var(--bg-raised); border:1px solid var(--border); color:var(--text); cursor:pointer; border-radius:8px;">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
         </button>
         <h2 style="font-size:18px; font-weight:600; color:var(--text);">Intake Jobs</h2>
-      </div>
+      </div>`;
+    if (!jobs.length) {
+      body.innerHTML = backBar + '<div class="empty-state"><p>No intake jobs yet. Ingest a source to get started.</p></div>';
+      return;
+    }
+    body.innerHTML = backBar + `
       <div style="max-width:700px;">
         <div class="table-wrap">
           <table>
