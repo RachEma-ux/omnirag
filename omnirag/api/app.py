@@ -44,6 +44,10 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
+    # Security middleware (auth + rate limiting)
+    from omnirag.api.middleware.security import SecurityMiddleware
+    app.add_middleware(SecurityMiddleware)
+
     # Routes
     app.include_router(health_router, tags=["health"])
     app.include_router(pipelines_router, prefix="/pipelines", tags=["pipelines"])
@@ -304,6 +308,10 @@ Redoc.init("/openapi.json", {
     async def startup() -> None:
         from omnirag.adapters.defaults import register_defaults
         register_defaults()
+
+        # Connect to PostgreSQL (falls back to in-memory)
+        from omnirag.intake.storage.repository import get_repository
+        await get_repository().connect()
 
         from omnirag.intake.defaults import register_defaults as register_intake
         register_intake()

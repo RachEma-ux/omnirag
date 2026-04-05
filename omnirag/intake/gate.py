@@ -27,6 +27,7 @@ from omnirag.intake.materializers.base import get_materializer_registry
 from omnirag.intake.chunkers.base import get_chunker_registry
 from omnirag.intake.backpressure.admission import get_admission_controller, Decision
 from omnirag.intake.backpressure.dead_letter import get_dead_letter_queue
+from omnirag.intake.storage.repository import get_repository
 
 logger = structlog.get_logger(__name__)
 
@@ -272,6 +273,17 @@ class IntakeGate:
             new_cursor = str(job.files_found)
             get_cursor_store().update(connector.name, new_cursor)
 
+            # ── PERSIST ──
+            repo = get_repository()
+            await repo.save_job(job.to_dict())
+            await repo.update_cursor(connector.name, new_cursor)
+            for obj in source_objects:
+                await repo.save_source_object(obj.to_dict())
+            for doc in all_docs:
+                await repo.save_document(doc.to_dict())
+            for chunk in all_chunks:
+                await repo.save_chunk(chunk.to_dict())
+
             logger.info(
                 "intake.active",
                 job_id=job.id,
@@ -279,6 +291,7 @@ class IntakeGate:
                 docs=job.documents_created,
                 chunks=job.chunks_created,
                 errors=len(job.errors),
+                persisted=repo.is_persistent,
             )
 
         except Exception as e:
