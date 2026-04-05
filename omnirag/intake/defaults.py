@@ -36,6 +36,19 @@ def register_defaults() -> None:
     register_extractor(PdfExtractor())
     register_extractor(DocxExtractor())
     register_extractor(HtmlExtractor())
+
+    try:
+        from omnirag.intake.extractors.image import ImageExtractor
+        register_extractor(ImageExtractor())
+    except Exception:
+        pass
+
+    try:
+        from omnirag.intake.extractors.audio import AudioExtractor
+        register_extractor(AudioExtractor())
+    except Exception:
+        pass
+
     register_extractor(TextExtractor())  # last — widest match
 
     # ── Materializers ──
