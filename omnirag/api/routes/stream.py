@@ -5,10 +5,13 @@ from __future__ import annotations
 import json
 import time
 
+import structlog
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 from omnirag.output.retrieval.hybrid import get_retriever
 from omnirag.output.generation.engine import build_prompt, extract_citations, get_generation_engine
+
+logger = structlog.get_logger(__name__)
 
 router = APIRouter(prefix="/v1")
 
@@ -91,7 +94,7 @@ async def stream(ws: WebSocket):
         })
 
     except WebSocketDisconnect:
-        pass
+        logger.debug("stream.client_disconnected")
     except Exception as e:
         try:
             await ws.send_json({"type": "error", "data": str(e)})

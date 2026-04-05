@@ -176,8 +176,8 @@ class Repository:
                 async with self._pool.acquire() as conn:
                     row = await conn.fetchrow(f"SELECT COUNT(*) as cnt FROM {table}")
                     return row["cnt"] if row else 0
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug("repository.count_failed", table=table, error=str(e))
 
         return len(self._tables.get(table, {}))
 

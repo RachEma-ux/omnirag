@@ -48,24 +48,24 @@ class EntityExtractor:
             self._spacy_available = False
             return None
 
-    def extract(self, text: str, chunk_id: str, context: str = "",
-                mode: str = "hybrid", schema: dict | None = None) -> list[EntityMention]:
+    async def extract(self, text: str, chunk_id: str, context: str = "",
+                      mode: str = "hybrid", schema: dict | None = None) -> list[EntityMention]:
         """Extract entities using the specified mode."""
         if mode == "llm":
-            return self._extract_llm(text, chunk_id, context)
+            return await self._extract_llm(text, chunk_id, context)
         elif mode == "schema":
-            return self._extract_schema(text, chunk_id, schema or {})
+            return await self._extract_schema(text, chunk_id, schema or {})
         elif mode == "regex":
             return self._extract_regex(text, chunk_id, context)
         elif mode == "hybrid":
-            return self._extract_hybrid(text, chunk_id, context, schema)
+            return await self._extract_hybrid(text, chunk_id, context, schema)
         return self._extract_regex(text, chunk_id, context)
 
-    def _extract_hybrid(self, text: str, chunk_id: str, context: str = "",
-                        schema: dict | None = None) -> list[EntityMention]:
+    async def _extract_hybrid(self, text: str, chunk_id: str, context: str = "",
+                              schema: dict | None = None) -> list[EntityMention]:
         """Hybrid: try LLM first → spaCy → regex."""
         # Try LLM
-        llm_results = self._extract_llm(text, chunk_id, context)
+        llm_results = await self._extract_llm(text, chunk_id, context)
         if llm_results:
             # If schema provided, validate against it
             if schema:
@@ -82,11 +82,10 @@ class EntityExtractor:
         # Final fallback: regex
         return self._extract_regex(text, chunk_id, context)
 
-    def _extract_llm(self, text: str, chunk_id: str, context: str = "") -> list[EntityMention]:
+    async def _extract_llm(self, text: str, chunk_id: str, context: str = "") -> list[EntityMention]:
         """LLM-powered extraction via Ollama or OpenAI."""
         try:
             from omnirag.output.generation.engine import get_generation_engine
-            import asyncio
 
             engine = get_generation_engine()
             if engine.get_adapter_name() == "fallback":
@@ -95,12 +94,7 @@ class EntityExtractor:
             full_text = (context + "\n" + text).strip() if context else text
             prompt = ENTITY_EXTRACTION_PROMPT.format(text=full_text[:3000])
 
-            # Run sync (extraction is called from sync context)
-            loop = asyncio.new_event_loop()
-            try:
-                result = loop.run_until_complete(engine.generate(prompt, []))
-            finally:
-                loop.close()
+            result = await engine.generate(prompt, [])
 
             # Parse JSON from LLM response
             return self._parse_llm_entities(result.answer, chunk_id)
@@ -130,11 +124,10 @@ class EntityExtractor:
             logger.warning("entity_extraction.parse_failed", error=str(e))
         return _deduplicate(mentions)
 
-    def _extract_schema(self, text: str, chunk_id: str, schema: dict) -> list[EntityMention]:
+    async def _extract_schema(self, text: str, chunk_id: str, schema: dict) -> list[EntityMention]:
         """Schema-guided extraction: LLM constrained to allowed types."""
         try:
             from omnirag.output.generation.engine import get_generation_engine
-            import asyncio
 
             engine = get_generation_engine()
             if engine.get_adapter_name() == "fallback":
@@ -149,11 +142,7 @@ class EntityExtractor:
                 constraints=constraints, text=text[:3000],
             )
 
-            loop = asyncio.new_event_loop()
-            try:
-                result = loop.run_until_complete(engine.generate(prompt, []))
-            finally:
-                loop.close()
+            result = await engine.generate(prompt, [])
 
             return self._parse_llm_entities(result.answer, chunk_id)
         except Exception as e:

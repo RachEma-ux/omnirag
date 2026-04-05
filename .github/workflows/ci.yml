@@ -28,6 +28,26 @@ jobs:
           --health-timeout 5s
           --health-retries 5
 
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+      qdrant:
+        image: qdrant/qdrant:latest
+        ports:
+          - 6333:6333
+        options: >-
+          --health-cmd "wget -q --spider http://localhost:6333/healthz || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - uses: actions/checkout@v4
 
@@ -55,9 +75,13 @@ jobs:
       - name: Run tests
         env:
           DATABASE_URL: postgresql://omnirag:omnirag@localhost:5432/omnirag_test
+          REDIS_ADDR: localhost:6379
+          QDRANT_URL: http://localhost:6333
         run: pytest --cov=omnirag --cov-report=term-missing -v
 
       - name: Check coverage
         env:
           DATABASE_URL: postgresql://omnirag:omnirag@localhost:5432/omnirag_test
+          REDIS_ADDR: localhost:6379
+          QDRANT_URL: http://localhost:6333
         run: pytest --cov=omnirag --cov-fail-under=50

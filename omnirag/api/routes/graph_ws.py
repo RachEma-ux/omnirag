@@ -6,7 +6,10 @@ import json
 import uuid
 from typing import Any
 
+import structlog
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+
+logger = structlog.get_logger(__name__)
 
 router = APIRouter()
 
@@ -35,9 +38,9 @@ async def graph_collaboration(ws: WebSocket):
             # Broadcast to all others in session
             await broadcast(session_id, msg, exclude=ws)
     except WebSocketDisconnect:
-        pass
-    except Exception:
-        pass
+        logger.debug("graph_ws.client_disconnected", user=user_id)
+    except Exception as e:
+        logger.debug("graph_ws.receive_error", user=user_id, error=str(e))
     finally:
         _sessions[session_id] = [c for c in _sessions.get(session_id, []) if c["ws"] != ws]
         await broadcast(session_id, {"type": "leave", "user": user_id, "count": len(_sessions.get(session_id, []))})

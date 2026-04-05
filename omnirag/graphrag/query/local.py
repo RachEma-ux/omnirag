@@ -25,7 +25,7 @@ async def local_search(query: str, acl_principals: list[str],
     resolver = get_entity_resolver()
 
     # 1. Extract entities from query
-    mentions = extractor.extract(query, chunk_id="query")
+    mentions = await extractor.extract(query, chunk_id="query")
     if not mentions:
         return GraphEvidenceBundle(mode=QueryMode.LOCAL, confidence=0.0,
                                   latency_ms=(time.monotonic() - start) * 1000)

@@ -30,7 +30,7 @@ class GraphProjectionService:
         # 1. Extract entity mentions from all chunks
         all_mentions = []
         for chunk in chunks:
-            mentions = extractor.extract(chunk.text, chunk.id)
+            mentions = await extractor.extract(chunk.text, chunk.id)
             all_mentions.extend(mentions)
 
         if not all_mentions:

@@ -7,18 +7,20 @@ from omnirag.graphrag.extraction.resolution import EntityResolver
 
 
 class TestEntityExtraction:
-    def test_extract_proper_nouns(self):
+    @pytest.mark.asyncio
+    async def test_extract_proper_nouns(self):
         extractor = EntityExtractor()
-        mentions = extractor.extract(
+        mentions = await extractor.extract(
             "OmniRAG is a RAG platform built with Python and Neo4j.", chunk_id="c1"
         )
         names = [m.surface_form for m in mentions]
         # Should find at least OmniRAG, Neo4j
         assert any("OmniRAG" in n or "omnirag" in n.lower() for n in names)
 
-    def test_extract_with_context(self):
+    @pytest.mark.asyncio
+    async def test_extract_with_context(self):
         extractor = EntityExtractor()
-        mentions = extractor.extract(
+        mentions = await extractor.extract(
             "It was released last year.",
             chunk_id="c2",
             context="Microsoft announced a new product."
@@ -26,23 +28,26 @@ class TestEntityExtraction:
         names = [m.surface_form.lower() for m in mentions]
         assert any("microsoft" in n for n in names)
 
-    def test_extract_multiple_types(self):
+    @pytest.mark.asyncio
+    async def test_extract_multiple_types(self):
         extractor = EntityExtractor()
-        mentions = extractor.extract(
+        mentions = await extractor.extract(
             "PostgreSQL and Elasticsearch are used by OmniRAG for indexing.",
             chunk_id="c3"
         )
         assert len(mentions) >= 2
 
-    def test_extract_empty(self):
+    @pytest.mark.asyncio
+    async def test_extract_empty(self):
         extractor = EntityExtractor()
-        mentions = extractor.extract("the cat sat on the mat", chunk_id="c4")
+        mentions = await extractor.extract("the cat sat on the mat", chunk_id="c4")
         # May or may not find entities depending on model
         assert isinstance(mentions, list)
 
-    def test_confidence_present(self):
+    @pytest.mark.asyncio
+    async def test_confidence_present(self):
         extractor = EntityExtractor()
-        mentions = extractor.extract("Google released TensorFlow.", chunk_id="c5")
+        mentions = await extractor.extract("Google released TensorFlow.", chunk_id="c5")
         for m in mentions:
             assert 0 <= m.confidence <= 1.0
 

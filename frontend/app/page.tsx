@@ -3,6 +3,7 @@
 import { useState } from "react";
 import IntakePanel from "../components/IntakePanel";
 import GraphExplorer from "../components/GraphExplorer";
+import GraphVisualization from "../components/GraphVisualization";
 import ChatInterface from "../components/ChatInterface";
 import StatsPanel from "../components/StatsPanel";
 
@@ -62,15 +63,9 @@ export default function Home() {
           </div>
         )}
         {activeTab === "Visualization" && (
-          <div className="max-w-3xl mx-auto">
-            <h2 className="text-lg font-semibold mb-4">Graph Visualization</h2>
-            <p className="text-[#888] text-sm">
-              Interactive knowledge graph — available at{" "}
-              <a href="http://localhost:8100" className="text-[#6366f1] underline">
-                localhost:8100
-              </a>{" "}
-              (canvas-based visualization with force layout, path finding, filtering)
-            </p>
+          <div className="max-w-5xl mx-auto space-y-4">
+            <h2 className="text-lg font-semibold">Graph Visualization</h2>
+            <GraphVisualization />
           </div>
         )}
         {activeTab === "Chat" && <ChatInterface />}

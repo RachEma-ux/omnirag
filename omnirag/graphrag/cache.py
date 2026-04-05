@@ -89,8 +89,8 @@ class GraphCache:
                     self.stats["hits"] += 1
                     bundle_dict = json.loads(data)
                     return self._dict_to_bundle(bundle_dict)
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug("cache.get_failed", error=str(e))
 
         # Memory fallback
         entry = self._memory.get(key)
@@ -118,8 +118,8 @@ class GraphCache:
                 r.setex(key, ttl, data)
                 self.stats["writes"] += 1
                 return
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug("cache.put_failed", error=str(e))
 
         self._memory[key] = (data, time.time() + ttl)
         self.stats["writes"] += 1
@@ -133,8 +133,8 @@ class GraphCache:
                 keys = r.keys("graphrag:global:*")
                 if keys:
                     count = r.delete(*keys)
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug("cache.invalidate_failed", error=str(e))
         else:
             to_delete = [k for k in self._memory if k.startswith("graphrag:global:")]
             for k in to_delete:

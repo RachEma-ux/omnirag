@@ -64,8 +64,8 @@ class ConsistencyCoordinator:
                 for store in stores_written:
                     r.set(f"store:{store}:version", new_version)
                 return new_version
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug("consistency.redis_error", op="commit", error=str(e))
 
         # Fallback
         self._versions["global"] += 1
@@ -81,8 +81,8 @@ class ConsistencyCoordinator:
             try:
                 r.set(f"user:{user_hash}:last_version", version)
                 return
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug("consistency.redis_error", op="set_user", error=str(e))
         self._user_versions[user_hash] = version
 
     def get_user_version(self, user_hash: str) -> int:
@@ -91,8 +91,8 @@ class ConsistencyCoordinator:
             try:
                 v = r.get(f"user:{user_hash}:last_version")
                 return int(v) if v else 0
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug("consistency.redis_error", op="get_user", error=str(e))
         return self._user_versions.get(user_hash, 0)
 
     def _min_store_version(self) -> int:
@@ -104,8 +104,8 @@ class ConsistencyCoordinator:
                     v = r.get(f"store:{store}:version")
                     versions.append(int(v) if v else 0)
                 return min(versions) if versions else 0
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug("consistency.redis_error", op="min_version", error=str(e))
         return min(self._versions.get("vector", 0), self._versions.get("keyword", 0), self._versions.get("metadata", 0))
 
     async def wait_for_consistency(self, user_version: int, timeout_ms: int = WAIT_MAX_MS) -> str:
