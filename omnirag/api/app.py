@@ -334,6 +334,20 @@ Redoc.init("/openapi.json", {
         registry.register(KeywordIndexWriter())
         registry.register(MetadataIndexWriter())
 
+        # Generation engine: configure LLM adapter based on env vars.
+        # Priority: OPENAI_API_KEY → OpenAI, else fallback (no LLM).
+        import os as _os
+        from omnirag.output.generation.engine import get_generation_engine, OpenAIAdapter
+        _openai_key = _os.environ.get("OPENAI_API_KEY", "")
+        if _openai_key:
+            _model = _os.environ.get("OMNIRAG_LLM_MODEL", "gpt-4o-mini")
+            get_generation_engine().set_adapter(OpenAIAdapter(model=_model, api_key=_openai_key))
+            import structlog as _sl
+            _sl.get_logger(__name__).info("generation.configured", adapter="openai", model=_model)
+        else:
+            import structlog as _sl
+            _sl.get_logger(__name__).warning("generation.no_llm", msg="OPENAI_API_KEY not set, using fallback (no generation)")
+
         # GraphRAG: connect graph store
         from omnirag.graphrag.store import get_graph_store
         await get_graph_store().connect()
