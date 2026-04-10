@@ -169,7 +169,10 @@ class VectorIndexWriter(BaseIndexWriter):
         for cid, item in self._fallback.items():
             if acl_principals:
                 item_acl = item.get("acl_principals", [])
-                if not any(p in item_acl for p in acl_principals) and "public" not in [a.lower() for a in item_acl]:
+                # Empty ACL = open access (public-readable). Only filter
+                # when the chunk has an explicit ACL that excludes the
+                # caller's principals.
+                if item_acl and not any(p in item_acl for p in acl_principals) and "public" not in [a.lower() for a in item_acl]:
                     continue
             score = cosine(query_vector, item["vector"])
             scored.append({"chunk_id": cid, "score": score, "payload": item})

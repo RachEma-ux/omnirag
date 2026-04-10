@@ -248,11 +248,28 @@ class IntakeGate:
 
             # ── INDEXED ──
             try:
-                # Index writer abstraction (Phase F will add real writers)
-                self._transition(job, JobState.INDEXED, chunks_indexed=len(all_chunks))
+                # Embed chunks + write to all registered index writers
+                # (vector, keyword, metadata). Same logic as demo/load in
+                # api/routes/health.py:54-59. Previously a Phase F stub.
+                from omnirag.output.embedding import get_embedding_pipeline
+                from omnirag.output.index_writers.base import get_writer_registry
+
+                embed_pipeline = get_embedding_pipeline()
+                embed_results = await embed_pipeline.embed_chunks(all_chunks)
+                writer_registry = get_writer_registry()
+                for writer in writer_registry.all():
+                    await writer.write(all_chunks, embed_results)
+
+                indexed_count = len([r for r in embed_results if r.status == "completed"])
+                self._transition(job, JobState.INDEXED, chunks_indexed=indexed_count)
+                logger.info("intake.indexed", job_id=job.id, chunks=len(all_chunks), embedded=indexed_count)
             except Exception as e:
-                job.fail(f"Indexing failed: {e}")
-                return job
+                # Embedding/index failure is non-fatal for the intake — the
+                # chunks are still stored and can be re-indexed later. Log
+                # the error and transition with 0 indexed.
+                logger.warning("intake.index_partial", job_id=job.id, error=str(e))
+                job.errors.append(f"Indexing partial: {e}")
+                self._transition(job, JobState.INDEXED, chunks_indexed=0)
 
             # ── VERIFIED ──
             try:

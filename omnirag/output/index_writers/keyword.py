@@ -142,7 +142,8 @@ class KeywordIndexWriter(BaseIndexWriter):
         for cid, item in self._fallback.items():
             if acl_principals:
                 item_acl = item.get("acl_principals", [])
-                if not any(p in item_acl for p in acl_principals) and "public" not in [a.lower() for a in item_acl]:
+                # Empty ACL = open access (public-readable).
+                if item_acl and not any(p in item_acl for p in acl_principals) and "public" not in [a.lower() for a in item_acl]:
                     continue
             content_lower = item["content"].lower()
             score = sum(1 for t in terms if t in content_lower) / max(len(terms), 1)
